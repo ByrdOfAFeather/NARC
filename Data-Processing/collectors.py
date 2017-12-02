@@ -43,24 +43,6 @@ class Collector:
 			user_dict[users['user']['id']] = users['user']['name']
 		return user_dict
 
-	# def get_quiz(self, quiz_id,
-	# 		output_folder='Quizzes', output_file_name='quiztest.json'):
-	# 	"""Gets quiz information from a canvas course
-	#
-	# 	:param quiz_id: The ID for the quiz
-	# 	:param output_folder: The folder for output
-	# 	:param output_file_name: The file name of the output
-	# 	:return: A .json file containing quiz payload
-	# 	"""
-	# 	r = requests.put(
-	# 		'{}/api/v1/courses/{}/quizzes/{}/statistics'.format(self.url, self.class_id, quiz_id),
-	# 		headers=self.header)
-	#
-	# 	with open('{}/{}.json'.format(output_folder, output_file_name), 'w') as f:
-	# 		json.dump(r.json(), f)
-	#
-	# 	return r.json()
-
 
 class Module(Collector):
 	"""Represents and collects data from a single module
@@ -128,22 +110,61 @@ class Quiz(Collector):
 		self.quiz_id = quiz_id
 		super(Quiz, self).__init__(class_id=class_id, header=header, url=url)
 
+	def _get_quiz_question_ids(self):
+		api_target = r'{}/api/v1/courses/{}/quizzes/{}/questions'
+		quiz_response = requests.put(api_target.format(self.url, self.class_id, self.quiz_id), headers=self.header)
+		quiz_dict = {}
+		for questions in quiz_response.json():
+			raw_text = questions['question_text']
+			first_expression = re.compile('<.*?>')
+			questions['question_text'] = re.sub(first_expression, '', raw_text)
+			quiz_dict[questions['id']] = (questions['question_text'], questions['position'], questions['answers'])
+		return quiz_dict
+
 	def _get_quiz_submissions(self):
+		"""Gets all submission objects of a quiz
+		:return: a list of submission ids
+		"""
 		api_target = r'{}/api/v1/courses/{}/quizzes/{}/submissions'
 		quiz = requests.put(url=api_target.format(self.url, self.class_id, self.quiz_id), headers=self.header)
 		submission_list = []
-		for items in quiz.json()['quiz_submissions']:
-			submission_list.append(items['submission_id'])
+		for submissions in quiz.json()['quiz_submissions']:
+			submission_list.append(submissions['id'])
 		return submission_list
 
 	def get_quiz_events(self):
+		"""Gets the events of a quiz
+		:return: ADD DOCUMENTATION HERE
+		"""
 		api_target = '{}/api/v1/courses/{}/quizzes/{}/submissions/{}/events'
-		for items in self._get_quiz_submissions():
-			events = requests.put(api_target.format(self.url, self.class_id, self.quiz_id, items))
-			print(events.json())
+		for submissions in self._get_quiz_submissions():
+			events = requests.put(api_target.format(self.url, self.class_id, self.quiz_id, submissions),
+			                      headers=self.header)
 
+			# Gets the events declaring when a question was answered
+			event_dict = events.json()
+			questions_answered = [i
+			                      for i in event_dict['quiz_submission_events']
+			                      if i['event_type'] == 'question_answered'
+			                      ]
+			del questions_answered[0]  # Takes out a list of initialized quiz answers
 
-		pass
+			# Adds readability information to the output json file
+			key_list = self._get_quiz_question_ids()
+			for questions in questions_answered:
+				current_id = int(questions['event_data'][0]['quiz_question_id'])
+				quiz_text = key_list[current_id][0]
+				quiz_order = key_list[current_id][1]
+				quiz_answers = key_list[current_id][2]
+				questions['question_text'] = quiz_text
+				questions['order'] = quiz_order
+				questions['answers'] = quiz_answers
+
+			# Saves the JSON objects
+			with open('{}/{}.json'.format('temp', 'questions_answered{}'.format(submissions)), 'w') as f:
+				json.dump(questions_answered, f)
+			with open('{}/{}.json'.format('temp', 'all_data{}'.format(submissions)), 'w') as f:
+				json.dump(events.json(), f)
 
 
 class Discussion(Collector):

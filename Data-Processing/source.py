@@ -15,12 +15,12 @@ ncvps_url = 'http://ncvps.instructure.com'
 nccs_header = {'Authorization': 'Bearer {}'.format(nccs_token)}
 ncvps_header = {'Authorization': 'Bearer {}'.format(ncvps_token)}
 
-first_module = Module(url=nccs_url, header=nccs_header, class_id=9360, module_id=8792)
+example_module = Module(url=nccs_url, header=nccs_header, class_id=9360, module_id=8803)
 
 
 def main():
 	quiz_list = []
-	for quizzes in first_module.get_module_items()['Subsections']['Quizzes']:
+	for quizzes in example_module.get_module_items()['Subsections']['Quizzes']:
 		quiz_list.append(Quiz(quizzes, url=nccs_url, header=nccs_header, class_id=9360))
 	for quiz_objects in quiz_list:
 		quiz_objects.get_quiz_events()

@@ -1,3 +1,5 @@
 requests==2.18.4
 nltk==3.2.5
 numpy==1.13.1+mkl
+scikit-neuralnetwork=0.7
+scipy=1.0.0
