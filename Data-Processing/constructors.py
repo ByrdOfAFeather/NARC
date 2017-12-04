@@ -13,12 +13,15 @@ class QuizEvents:
 		self.questions_answered = self.quiz.get_quiz_events(questions_answered=True)
 
 	def build_average_question_time(self):
+		average_time_dict = {}
 		for students, answers in self.questions_answered.items():
-			average_time_dict = {}
 			if answers:
+				temp_time_list = []
 				for answer in answers:
-					temp_time_list = []
-					test = datetime.datetime(*time.strptime(answer['created_at'].replace("Z", ""), "%Y-%m-%dT%H:%M:%S")[:6])
-					print(students)
-					print(test)
-		print(temp_time_list)
+					question_time = datetime.datetime(*time.strptime(answer['created_at'].replace("Z", ""), "%Y-%m-%dT%H:%M:%S")[:6])
+					temp_time_list.append(question_time)
+				if len(temp_time_list) > 1:
+					print(temp_time_list[0].time() - temp_time_list[1].time())
+				average_time_dict[students] = temp_time_list
+
+
