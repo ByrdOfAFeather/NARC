@@ -97,7 +97,7 @@ class Module(Collector):
 			# url = r'{}/api/v1/courses/{}/analytics/users/{}/activity'
 			api_target = r'{}/api/v1/users/{}/page_views'
 			response = requests.put(api_target.format(self.url, students), headers=self.header)
-			print(response.json())
+			# print(response.json())
 
 	def get_average_individual_module_items_time(self):
 		pass
@@ -129,42 +129,63 @@ class Quiz(Collector):
 		quiz = requests.put(url=api_target.format(self.url, self.class_id, self.quiz_id), headers=self.header)
 		submission_list = []
 		for submissions in quiz.json()['quiz_submissions']:
-			submission_list.append(submissions['id'])
+			submission_list.append((submissions['id'], submissions['user_id']))
 		return submission_list
 
-	def get_quiz_events(self):
+	def get_quiz_events(self, questions_answered=False):
 		"""Gets the events of a quiz
 		:return: ADD DOCUMENTATION HERE
 		"""
 		api_target = '{}/api/v1/courses/{}/quizzes/{}/submissions/{}/events'
-		for submissions in self._get_quiz_submissions():
-			events = requests.put(api_target.format(self.url, self.class_id, self.quiz_id, submissions),
+		if questions_answered: questions_answered_dict = {}
+		quiz_events = {}
+		for submission_id, user_id in self._get_quiz_submissions():
+			events = requests.put(api_target.format(self.url, self.class_id, self.quiz_id, submission_id),
 			                      headers=self.header)
-
+			quiz_events[user_id] = events.json()
 			# Gets the events declaring when a question was answered
 			event_dict = events.json()
-			questions_answered = [i
-			                      for i in event_dict['quiz_submission_events']
-			                      if i['event_type'] == 'question_answered'
-			                      ]
-			del questions_answered[0]  # Takes out a list of initialized quiz answers
+			if questions_answered:
+				current_questions_answered = []
+				for items in event_dict['quiz_submission_events']:
+					if items['event_type'] == 'question_answered':
+						current_questions_answered.append(items)
+				questions_answered_dict[user_id] = current_questions_answered
 
-			# Adds readability information to the output json file
-			key_list = self._get_quiz_question_ids()
-			for questions in questions_answered:
-				current_id = int(questions['event_data'][0]['quiz_question_id'])
-				quiz_text = key_list[current_id][0]
-				quiz_order = key_list[current_id][1]
-				quiz_answers = key_list[current_id][2]
-				questions['question_text'] = quiz_text
-				questions['order'] = quiz_order
-				questions['answers'] = quiz_answers
+				key_list = self._get_quiz_question_ids()
+				for questions in questions_answered_dict[user_id]:
+					current_id = int(questions['event_data'][0]['quiz_question_id'])
+					quiz_text = key_list[current_id][0]
+					quiz_order = key_list[current_id][1]
+					questions['question_text'] = quiz_text
+					questions['order'] = quiz_order
 
+				del questions_answered_dict[user_id][0]
+
+
+				# Adds readability information to the output json file
+				# key_list = self._get_quiz_question_ids()
+				# for questions in questions_answered_dict.values():
+				# 	current_id = int(questions[0]['event_data'][0]['quiz_question_id'])
+				# 	# del questions[0][0]
+				# 	# del questions[0]
+				# 	quiz_text = key_list[current_id][0]
+				# 	quiz_order = key_list[current_id][1]
+				# 	quiz_answers = key_list[current_id][2]
+				# 	try:
+				# 		questions[0]['question_text'] = quiz_text
+				# 		questions[0]['order'] = quiz_order
+				# 		questions[0]['answers'] = quiz_answers
+				# 	except IndexError:
+				# 		print("This Had No Question Data")
 			# Saves the JSON objects
-			with open('{}/{}.json'.format('temp', 'questions_answered{}'.format(submissions)), 'w') as f:
-				json.dump(questions_answered, f)
-			with open('{}/{}.json'.format('temp', 'all_data{}'.format(submissions)), 'w') as f:
+			with open('{}/{}.json'.format('temp', 'questions_answered{}'.format(submission_id)), 'w') as f:
+				json.dump(questions_answered_dict, f)
+			with open('{}/{}.json'.format('temp', 'all_data{}'.format(submission_id)), 'w') as f:
 				json.dump(events.json(), f)
+
+		if questions_answered: return questions_answered_dict
+		else: return quiz_events
 
 
 class Discussion(Collector):

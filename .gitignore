@@ -2,6 +2,8 @@ Data-Processing/secrets.py
 Data-Processing/Discussions
 Data-Processing/Calculus Discussions
 Data-Processing/temp
+Data-Processing/logs
+Model-Training/tutorial.py
 
 *.pyc
 *.idea
