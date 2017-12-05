@@ -7,6 +7,7 @@
 from collectors import *
 from constructors import *
 from secrets import keys
+import timeit
 
 
 nccs_token = keys[0]
@@ -20,10 +21,14 @@ def main():
 	quiz_list = []
 	for quizzes in example_module.get_module_items()['Subsections']['Quizzes']:
 		quiz_list.append(Quiz(quizzes, url=nccs_url, header=nccs_header, class_id=9360))
-	quiz_events_data = []
-	for quiz_objects in quiz_list:
-		print("QUIZ OBJECTS: {}".format(quiz_objects))
-		QuizEvents(quiz_objects).build_average_question_time()
+	start = time.time()
+	gatherer = quiz_list[0]
+	constructor = QuizEvents(gatherer)
+	end = time.time()
+	print("TOTAL {}".format(end - start))
+	print(constructor.get_average_question_time('270'))
 
 
-if __name__ == "__main__": main()
+if __name__ == "__main__":
+	print(timeit.timeit(main, number=100)/100)
+	main()

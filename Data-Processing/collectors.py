@@ -8,6 +8,7 @@
 import requests 
 import json 
 import re
+import os
 
 
 class Collector:
@@ -92,7 +93,7 @@ class Module(Collector):
 		module_dict = {'Subsections': {'Notes': notes, 'Quizzes': quizzes}, 'Overall': module.json()}
 		return module_dict
 
-	def get_average_total_module_time(self):
+	def module_times(self):
 		for students in self.get_class_users('temp', 'temp'):
 			# url = r'{}/api/v1/courses/{}/analytics/users/{}/activity'
 			api_target = r'{}/api/v1/users/{}/page_views'
@@ -111,81 +112,123 @@ class Quiz(Collector):
 		super(Quiz, self).__init__(class_id=class_id, header=header, url=url)
 
 	def _get_quiz_question_ids(self):
+		"""Builds a dictionary of questions linked to their respective ids
+		:return: dictionary {question: question_text, question order, question answers}
+		"""
 		api_target = r'{}/api/v1/courses/{}/quizzes/{}/questions'
 		quiz_response = requests.put(api_target.format(self.url, self.class_id, self.quiz_id), headers=self.header)
-		quiz_dict = {}
+
+		quiz_question_id_dict = {}
 		for questions in quiz_response.json():
 			raw_text = questions['question_text']
 			first_expression = re.compile('<.*?>')
 			questions['question_text'] = re.sub(first_expression, '', raw_text)
-			quiz_dict[questions['id']] = (questions['question_text'], questions['position'], questions['answers'])
-		return quiz_dict
+			quiz_question_id_dict[questions['id']] = (questions['question_text'],
+			                                          questions['position'],
+			                                          questions['answers'])
+
+		return quiz_question_id_dict
 
 	def _get_quiz_submissions(self):
 		"""Gets all submission objects of a quiz
-		:return: a list of submission ids
+		:return: list [(submission id, user id)]
 		"""
-		api_target = r'{}/api/v1/courses/{}/quizzes/{}/submissions'
+		api_target = r'{}/api/v1/courses/{}/quizzes/{}/submissions?per_page=50'
 		quiz = requests.put(url=api_target.format(self.url, self.class_id, self.quiz_id), headers=self.header)
+
 		submission_list = []
 		for submissions in quiz.json()['quiz_submissions']:
 			submission_list.append((submissions['id'], submissions['user_id']))
+
 		return submission_list
 
-	def get_quiz_events(self, questions_answered=False):
-		"""Gets the events of a quiz
-		:return: ADD DOCUMENTATION HERE
+	def get_questions_answered(self):
+		"""Gets a dictionary of users linked to their question answered event for this particular quiz
+		:return:
+		{ user id:
+			[
+				{
+					"id": id,
+					"event_type": "question_answered",
+					"event_data": [
+				        {
+				            "quiz_question_id" : question id ,
+				            "answer" : answer id of user-given answer
+				        }
+					],
+		            "created_at": date and time of even creation
+		            "answer_text": the actual question in text form
+		            "order": the question number relative to the quiz
+		        }
+			]
+		}
 		"""
+		submissions = self._get_quiz_submissions()
+		# Checks if data already exists
+		if os.path.exists("temp/questions_answered_{}.json".format(self.quiz_id)):
+			quiz_submissions = json.load(open("temp/questions_answered_{}.json".format(self.quiz_id)))
+
+			if len(quiz_submissions.keys()) == len(submissions):
+				print("Getting Already Made Quiz Questions Json")
+				return quiz_submissions
+
+		# Checks if pre-req data already exists
+		print("Rebuilding Quiz Questions Json")
+		event_dict = self.get_quiz_events()
+
+		# Builds a list of event_type = question_answered
+		questions_answered_dict = {}
+		key_list = self._get_quiz_question_ids()
+		for user_id, event_dict in event_dict.items():
+			current_questions_answered = []
+
+			for items in event_dict['quiz_submission_events']:
+				if items['event_type'] == 'question_answered':
+					current_questions_answered.append(items)
+
+			questions_answered_dict[user_id] = current_questions_answered
+
+			# Adds readability information to the output json file
+			for questions in questions_answered_dict[user_id]:
+				current_id = int(questions['event_data'][0]['quiz_question_id'])
+				quiz_text = key_list[current_id][0]
+				quiz_order = key_list[current_id][1]
+				questions['question_text'] = quiz_text
+				questions['order'] = quiz_order
+
+			del questions_answered_dict[user_id][0]
+
+		with open('{}/{}.json'.format('temp', 'questions_answered_{}'.format(self.quiz_id)), 'w') as f:
+			json.dump(questions_answered_dict, f)
+
+		return questions_answered_dict
+
+	def get_quiz_events(self):
+		"""Gets the events of a quiz
+		:return: Dictionary {user_id: events for user}
+		"""
+		submissions = self._get_quiz_submissions()
+		if os.path.exists("temp/events_{}.json".format(self.quiz_id)):
+			events = json.load(open("temp/events_{}.json".format(self.quiz_id)))
+
+			if len(events.keys()) == len(submissions):
+				print("Getting Already Made Events Json")
+				return events
+
+		print("Rebuilding Quiz Events Json")
 		api_target = '{}/api/v1/courses/{}/quizzes/{}/submissions/{}/events'
-		if questions_answered: questions_answered_dict = {}
+
+		# Builds a dictionary containing events linked to student canvas ids
 		quiz_events = {}
-		for submission_id, user_id in self._get_quiz_submissions():
+		for submission_id, user_id in submissions:
 			events = requests.put(api_target.format(self.url, self.class_id, self.quiz_id, submission_id),
 			                      headers=self.header)
 			quiz_events[user_id] = events.json()
-			# Gets the events declaring when a question was answered
-			event_dict = events.json()
-			if questions_answered:
-				current_questions_answered = []
-				for items in event_dict['quiz_submission_events']:
-					if items['event_type'] == 'question_answered':
-						current_questions_answered.append(items)
-				questions_answered_dict[user_id] = current_questions_answered
 
-				key_list = self._get_quiz_question_ids()
-				for questions in questions_answered_dict[user_id]:
-					current_id = int(questions['event_data'][0]['quiz_question_id'])
-					quiz_text = key_list[current_id][0]
-					quiz_order = key_list[current_id][1]
-					questions['question_text'] = quiz_text
-					questions['order'] = quiz_order
+		with open('{}/{}.json'.format('temp', 'events_{}'.format(self.quiz_id)), 'w') as f:
+			json.dump(quiz_events, f)
 
-				del questions_answered_dict[user_id][0]
-
-
-				# Adds readability information to the output json file
-				# key_list = self._get_quiz_question_ids()
-				# for questions in questions_answered_dict.values():
-				# 	current_id = int(questions[0]['event_data'][0]['quiz_question_id'])
-				# 	# del questions[0][0]
-				# 	# del questions[0]
-				# 	quiz_text = key_list[current_id][0]
-				# 	quiz_order = key_list[current_id][1]
-				# 	quiz_answers = key_list[current_id][2]
-				# 	try:
-				# 		questions[0]['question_text'] = quiz_text
-				# 		questions[0]['order'] = quiz_order
-				# 		questions[0]['answers'] = quiz_answers
-				# 	except IndexError:
-				# 		print("This Had No Question Data")
-			# Saves the JSON objects
-			with open('{}/{}.json'.format('temp', 'questions_answered{}'.format(submission_id)), 'w') as f:
-				json.dump(questions_answered_dict, f)
-			with open('{}/{}.json'.format('temp', 'all_data{}'.format(submission_id)), 'w') as f:
-				json.dump(events.json(), f)
-
-		if questions_answered: return questions_answered_dict
-		else: return quiz_events
+		return quiz_events
 
 
 class Discussion(Collector):
