@@ -25,10 +25,10 @@ def main():
 	gatherer = quiz_list[0]
 	constructor = QuizEvents(gatherer)
 	end = time.time()
-	print("TOTAL {}".format(end - start))
 	print(constructor.get_average_question_time('270'))
+	print(constructor.get_user_score())
+	print("TOTAL {}".format(end - start))
 
 
 if __name__ == "__main__":
-	print(timeit.timeit(main, number=100)/100)
 	main()

@@ -110,6 +110,7 @@ class Quiz(Collector):
 	def __init__(self, quiz_id, class_id=None, header=None, url=None):
 		self.quiz_id = quiz_id
 		super(Quiz, self).__init__(class_id=class_id, header=header, url=url)
+		self.submissions = self._get_quiz_submissions()
 
 	def _get_quiz_question_ids(self):
 		"""Builds a dictionary of questions linked to their respective ids
@@ -137,10 +138,12 @@ class Quiz(Collector):
 		quiz = requests.put(url=api_target.format(self.url, self.class_id, self.quiz_id), headers=self.header)
 
 		submission_list = []
+		submission_dict = []
 		for submissions in quiz.json()['quiz_submissions']:
+			submission_dict.append(submissions)
 			submission_list.append((submissions['id'], submissions['user_id']))
 
-		return submission_list
+		return submission_list, submission_dict
 
 	def get_questions_answered(self):
 		"""Gets a dictionary of users linked to their question answered event for this particular quiz
@@ -163,12 +166,11 @@ class Quiz(Collector):
 			]
 		}
 		"""
-		submissions = self._get_quiz_submissions()
 		# Checks if data already exists
 		if os.path.exists("temp/questions_answered_{}.json".format(self.quiz_id)):
 			quiz_submissions = json.load(open("temp/questions_answered_{}.json".format(self.quiz_id)))
 
-			if len(quiz_submissions.keys()) == len(submissions):
+			if len(quiz_submissions.keys()) == len(self._get_quiz_submissions()[0]):  # Needs to check for updates
 				print("Getting Already Made Quiz Questions Json")
 				return quiz_submissions
 
@@ -203,15 +205,40 @@ class Quiz(Collector):
 
 		return questions_answered_dict
 
+	def get_page_leaves(self):
+		if os.path.exists("temp/page_leaves_{}.json".format(self.quiz_id)):
+			page_leaves_dict = json.load(open("temp/page_leaves_{}.json".format(self.quiz_id)))
+
+			if len(page_leaves_dict.keys()) == len(self._get_quiz_submissions()[0]):  # Needs to check for updates
+				print("Getting Already Made Page Leaves Json")
+				return page_leaves_dict
+
+		# Checks if pre-req data already exists
+		print("Building Page Leaves Json")
+		event_dict = self.get_quiz_events()
+
+		page_leaves_dict = {}
+		for user_id, event_dict in event_dict.items():
+
+			current_list = []
+			for items in event_dict['quiz_submission_events']:
+				if items['event_type'] == 'page_blurred' or items['event_type'] == 'page_focused':
+					current_list.append(items)
+			page_leaves_dict[user_id] = current_list
+
+		with open('{}/{}.json'.format('temp', 'page_leaves_{}'.format(self.quiz_id)), 'w') as f:
+			json.dump(page_leaves_dict, f)
+
+		return page_leaves_dict
+
 	def get_quiz_events(self):
 		"""Gets the events of a quiz
 		:return: Dictionary {user_id: events for user}
 		"""
-		submissions = self._get_quiz_submissions()
 		if os.path.exists("temp/events_{}.json".format(self.quiz_id)):
 			events = json.load(open("temp/events_{}.json".format(self.quiz_id)))
 
-			if len(events.keys()) == len(submissions):
+			if len(events.keys()) == len(self._get_quiz_submissions()[0]):  # Needs to check for changes
 				print("Getting Already Made Events Json")
 				return events
 
@@ -220,7 +247,7 @@ class Quiz(Collector):
 
 		# Builds a dictionary containing events linked to student canvas ids
 		quiz_events = {}
-		for submission_id, user_id in submissions:
+		for submission_id, user_id in self.submissions[0]:
 			events = requests.put(api_target.format(self.url, self.class_id, self.quiz_id, submission_id),
 			                      headers=self.header)
 			quiz_events[user_id] = events.json()
