@@ -57,7 +57,7 @@ class QuizEvents:
 					overall_distance_list.append(items.seconds)
 				average_time = round(sum(distance_list) / len(distance_list), 2)
 			else: average_time = None
-			self.data_set[students]['average_time_between_questions'] = average_time
+			self.data_set[str(students)]['average_time_between_questions'] = average_time
 
 		overall_average_time = round(sum(overall_distance_list) / len(overall_distance_list), 2)
 		self.data_set['Overall']['average_time_between_questions'] = overall_average_time
@@ -132,4 +132,6 @@ class QuizEvents:
 			return None
 
 	def build_dataframe(self):
-		return pd.DataFrame.from_dict(self.data_set, orient='index')
+		without_nan = pd.DataFrame.from_dict(self.data_set, orient='index')
+		without_nan = without_nan[without_nan.average_time_between_questions.notnull()]
+		return without_nan

@@ -4,11 +4,11 @@
 # Main file for data analytics
 # @author: ByrdOfAFeather
 
+
 from collectors import *
 from constructors import *
 from secrets import keys
-import requests
-
+from ModelTraining import predictors
 
 nccs_token = keys[0]
 nccs_url = 'http://nccs.instructure.com'
@@ -24,16 +24,15 @@ def main():
 	start = time.time()
 	gatherer = quiz_list[0]
 	constructor = QuizEvents(gatherer)
-	print(constructor.build_dataframe())
-	for user in constructor.submissions:
-		print(user)
-		xd = requests.put(r'{}/api/v1/courses/{}/users/{}?include[]=enrollments'.format(nccs_url, 9360, user['user_id']),
-		                  headers=nccs_header)
-		print(xd.json())
-
+	# for ids in constructor.data_set.keys():
+	# 	print(ids)
+	# 	request = requests.put(r'{}/api/v1/courses/{}/analytics/users/{}/activity'.format(nccs_url, 9360, ids), headers=nccs_header)
+	# 	print(request.json())
+	dev_set = constructor.build_dataframe()
+	jack_walsh = predictors.AutoEncoder(dev_set, dev_set)
+	jack_walsh.run(layer_1_f=40, layer_2_f=10)
 	end = time.time()
 	print("TOTAL {}".format(end - start))
 
 
-if __name__ == "__main__":
-	main()
+if __name__ == "__main__": main()
