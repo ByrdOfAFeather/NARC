@@ -19,7 +19,7 @@ class AutoEncoder:
 		if len(test_data_set): self.test_index = test_data_set.index.values
 		self.test_data_set = self.data_scaler.transform(test_data_set)
 
-	def run(self, learning_rate=.01, layer_1_f=40, layer_2_f=20):
+	def run(self, learning_rate=.01, layer_1_f=40, layer_2_f=20, epochs=1000):
 		input_features = self.data_set.shape[1]
 		weights = {
 			'encoder_h1': tf.Variable(tf.random_normal([input_features, layer_1_f])),
@@ -53,21 +53,50 @@ class AutoEncoder:
 		y_true = data
 
 		loss = tf.reduce_mean(tf.pow(y_true - y_pred, 2))
-		optimizer = tf.train.RMSPropOptimizer(learning_rate=learning_rate).minimize(loss)
+		optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(loss)
 		init = tf.global_variables_initializer()
 
 		with tf.Session() as session:
 			session.run(init)
-			for i in range(0, 1000):
-				_, l = session.run([optimizer, loss], feed_dict={data: self.data_set})
-				if i % 100 == 0:
-					print("STEP {} LOSS {}".format(i, l))
+			self.loss = None
+			test_list = None
+			anamoly_list = None
+
+			def train(x):
+				for i in range(0, epochs):
+					_, self.loss = session.run([optimizer, loss], feed_dict={data: x})
+					if i % 100 == 0:
+						print("STEP {} LOSS {}".format(i, self.loss))
+
+			train(self.data_set)
 			if self.test_data_set.any:
+				test_list = []
+				anamoly_list = []
 				for index, items in enumerate(self.test_data_set):
 					print("=========USER ID {}=========".format(self.test_index[index]))
 					items = np.reshape(items, (1, input_features))
 					cur_result = session.run(decoder_op, feed_dict={data: items})
 					MSE = session.run(tf.reduce_mean(tf.pow(cur_result - items, 2)))
+					if MSE < self.loss:
+						test_list.append(items[0])
+					else: anamoly_list.append((index, items[0]))
 					print("ACTUAL {}".format(items))
 					print("PREDICT {}".format(cur_result))
 					print("MEAN SQUARED ERROR {}\n".format(MSE))
+
+				train(test_list)
+				ex = open('temp/results.txt', 'w')
+				for index, items in enumerate(self.data_set):
+					user_id = self.test_index[index]
+
+					print("USER ID {}".format(user_id))
+
+					items = np.reshape(items, (1, input_features))
+					cur_result = session.run(decoder_op, feed_dict={data: items})
+					MSE = session.run(tf.reduce_mean(tf.pow(cur_result - items, 2)))
+
+					print("Anamoly MSE {}".format(MSE))
+					if MSE > self.loss:
+						ex.write("USER ID {}\n".format(user_id))
+						ex.write("Anamoly MSE {}\n\n".format(MSE))
+				ex.close()

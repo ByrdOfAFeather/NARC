@@ -22,16 +22,17 @@ def main():
 	for quizzes in example_module.get_module_items()['Subsections']['Quizzes']:
 		quiz_list.append(Quiz(quizzes, url=nccs_url, header=nccs_header, class_id=9360))
 	start = time.time()
+
 	gatherer = quiz_list[0]
 	constructor = QuizEvents(gatherer)
-	# for ids in constructor.data_set.keys():
-	# 	print(ids)
-	# 	request = requests.put(r'{}/api/v1/courses/{}/analytics/users/{}/activity'.format(nccs_url, 9360, ids), headers=nccs_header)
-	# 	print(request.json())
 	dev_set = constructor.build_dataframe()
+
+	print(dev_set)
+
 	jack_walsh = predictors.AutoEncoder(dev_set, dev_set)
-	jack_walsh.run(layer_1_f=40, layer_2_f=10)
+	jack_walsh.run(layer_1_f=40, layer_2_f=35, learning_rate=10, epochs=30000)
 	end = time.time()
+
 	print("TOTAL {}".format(end - start))
 
 

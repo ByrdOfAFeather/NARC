@@ -132,6 +132,11 @@ class QuizEvents:
 			return None
 
 	def build_dataframe(self):
-		without_nan = pd.DataFrame.from_dict(self.data_set, orient='index')
+		data_set_copy = self.data_set
+		del self.data_set['Overall']
+		data_set = self.data_set
+		self.data_set = data_set_copy
+		del data_set_copy
+		without_nan = pd.DataFrame.from_dict(data_set, orient='index')
 		without_nan = without_nan[without_nan.average_time_between_questions.notnull()]
 		return without_nan
