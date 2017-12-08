@@ -19,7 +19,7 @@ class AutoEncoder:
 		if len(test_data_set): self.test_index = test_data_set.index.values
 		self.test_data_set = self.data_scaler.transform(test_data_set)
 
-	def run(self, learning_rate=.01, layer_1_f=40, layer_2_f=20, epochs=1000):
+	def run(self, learning_rate=.01, layer_1_f=40, layer_2_f=20, epochs=1000, test_thresh=.3):
 		input_features = self.data_set.shape[1]
 		weights = {
 			'encoder_h1': tf.Variable(tf.random_normal([input_features, layer_1_f])),
@@ -77,7 +77,7 @@ class AutoEncoder:
 					items = np.reshape(items, (1, input_features))
 					cur_result = session.run(decoder_op, feed_dict={data: items})
 					MSE = session.run(tf.reduce_mean(tf.pow(cur_result - items, 2)))
-					if MSE < self.loss:
+					if MSE < .5:
 						test_list.append(items[0])
 					else: anamoly_list.append((index, items[0]))
 					print("ACTUAL {}".format(items))
@@ -95,8 +95,8 @@ class AutoEncoder:
 					cur_result = session.run(decoder_op, feed_dict={data: items})
 					MSE = session.run(tf.reduce_mean(tf.pow(cur_result - items, 2)))
 
-					print("Anamoly MSE {}".format(MSE))
-					if MSE > self.loss:
+					print("Anomaly MSE {}".format(MSE))
+					if MSE > test_thresh:
 						ex.write("USER ID {}\n".format(user_id))
-						ex.write("Anamoly MSE {}\n\n".format(MSE))
+						ex.write("Anomaly MSE {}\n\n".format(MSE))
 				ex.close()

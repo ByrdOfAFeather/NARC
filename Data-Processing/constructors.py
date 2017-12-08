@@ -1,11 +1,15 @@
 import datetime
 import time
 import pandas as pd
+import os
+import json
+import requests
 
 
 class QuizEvents:
-	def __init__(self, quiz, questions_answered=None):
+	def __init__(self, quiz, questions_answered=None, anon=True):
 		print("Initializing Quiz")
+		self.anon = anon
 		self.data_set = {}
 		self.quiz = quiz
 
@@ -26,10 +30,11 @@ class QuizEvents:
 			self.data_set[user_id] = {}
 		self.data_set['Overall'] = {}
 
-		self._build_average_question_time()
+		# self._build_average_question_time()
 		self._build_user_scores()
 		self._build_user_page_leaves()
 		self._build_time_taken()
+		if not self.anon: self._non_anon_data_set()
 
 	def _build_average_question_time(self):
 		overall_distance_list = []
@@ -101,6 +106,37 @@ class QuizEvents:
 	def _get_quiz_distance(self):
 		pass
 
+	def _non_anon_data_set(self):
+		rebuild = False
+		if os.path.exists("temp/user_names_{}.json".format(self.quiz.quiz_id)):
+			print("Getting Already Made User Name List")
+			quiz_users = json.load(open("temp/user_names_{}.json".format(self.quiz.quiz_id)))
+			if len(quiz_users) < len(self.data_set):
+				rebuild = True
+			else: self.data_set = quiz_users
+
+		else: rebuild = True
+
+		if rebuild:
+			print("Rebuilding Name List")
+			name_set = {}
+			for ids, values in self.data_set.items():
+				profile = requests.put(r'{}/api/v1/users/{}/profile'.format(self.quiz.url, ids), headers=self.quiz.header)
+				try:
+					name_set[profile.json()['name']] = values
+				except KeyError:
+					print(ids)
+					print(profile.json())
+					name_set['Overall'] = values
+
+			pd.set_option('display.max_columns', 10)
+			pd.set_option('display.width', 1000)
+
+			with open('{}/{}.json'.format('temp', 'user_names_{}'.format(self.quiz.quiz_id)), 'w') as f:
+				json.dump(name_set, f)
+
+			self.data_set = name_set
+
 	def get_average_question_time(self, user_id='Overall'):
 		assert type(user_id) is str, "Data is indexed by {} not {}".format(str, type(user_id))
 
@@ -132,11 +168,11 @@ class QuizEvents:
 			return None
 
 	def build_dataframe(self):
-		data_set_copy = self.data_set
+		data_set_copy = self.data_set.copy()
 		del self.data_set['Overall']
 		data_set = self.data_set
 		self.data_set = data_set_copy
 		del data_set_copy
 		without_nan = pd.DataFrame.from_dict(data_set, orient='index')
-		without_nan = without_nan[without_nan.average_time_between_questions.notnull()]
+		# without_nan = without_nan[without_nan.average_time_between_questions.notnull()]
 		return without_nan

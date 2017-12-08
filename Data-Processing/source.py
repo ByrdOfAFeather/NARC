@@ -24,13 +24,11 @@ def main():
 	start = time.time()
 
 	gatherer = quiz_list[0]
-	constructor = QuizEvents(gatherer)
+	constructor = QuizEvents(gatherer, anon=False)
 	dev_set = constructor.build_dataframe()
-
 	print(dev_set)
-
 	jack_walsh = predictors.AutoEncoder(dev_set, dev_set)
-	jack_walsh.run(layer_1_f=40, layer_2_f=35, learning_rate=10, epochs=30000)
+	jack_walsh.run(layer_1_f=40, layer_2_f=35, learning_rate=.1, epochs=30000, test_thresh=.2)
 	end = time.time()
 
 	print("TOTAL {}".format(end - start))
