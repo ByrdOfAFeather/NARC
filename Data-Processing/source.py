@@ -10,6 +10,7 @@ from constructors import *
 from secrets import keys
 from ModelTraining import predictors
 
+
 nccs_token = keys[0]
 nccs_url = 'http://nccs.instructure.com'
 nccs_header = {'Authorization': 'Bearer {}'.format(nccs_token)}
@@ -22,7 +23,7 @@ def main():
 	for quizzes in example_module.get_module_items()['Subsections']['Quizzes']:
 		quiz_list.append(Quiz(quizzes, url=nccs_url, header=nccs_header, class_id=9360))
 	start = time.time()
-
+	print(example_module.get_class_users('temp', 'test'))
 	gatherer = quiz_list[0]
 	constructor = QuizEvents(gatherer, anon=False)
 	dev_set = constructor.build_dataframe()
@@ -30,7 +31,6 @@ def main():
 	jack_walsh = predictors.AutoEncoder(dev_set, dev_set)
 	jack_walsh.run(layer_1_f=40, layer_2_f=35, learning_rate=.1, epochs=30000, test_thresh=.2)
 	end = time.time()
-
 	print("TOTAL {}".format(end - start))
 
 

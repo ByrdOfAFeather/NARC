@@ -30,7 +30,7 @@ class Collector:
 		:param output_file_name: Name for the file containing json data
 		:return: A dictionary containing user ids linked to user names
 		"""
-		api_target = r'{}/api/v1/courses/{}/enrollments'
+		api_target = r'{}/api/v1/courses/{}/enrollments?per_page=50'
 		enrollment = requests.put(api_target.format(self.url, self.class_id), headers=self.header)
 
 		with open('{}/{}.json'.format(output_folder, output_file_name), 'w') as f:
