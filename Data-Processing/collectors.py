@@ -116,8 +116,10 @@ class Quiz(Collector):
 		"""Builds a dictionary of questions linked to their respective ids
 		:return: dictionary {question: question_text, question order, question answers}
 		"""
-		api_target = r'{}/api/v1/courses/{}/quizzes/{}/questions'
+		api_target = r'{}/api/v1/courses/{}/quizzes/{}/questions?per_page=100'
 		quiz_response = requests.put(api_target.format(self.url, self.class_id, self.quiz_id), headers=self.header)
+
+		print(quiz_response.json())
 
 		quiz_question_id_dict = {}
 		for questions in quiz_response.json():
@@ -134,7 +136,7 @@ class Quiz(Collector):
 		"""Gets all submission objects of a quiz
 		:return: list [(submission id, user id)]
 		"""
-		api_target = r'{}/api/v1/courses/{}/quizzes/{}/submissions?per_page=50'
+		api_target = r'{}/api/v1/courses/{}/quizzes/{}/submissions?per_page=100'
 		quiz = requests.put(url=api_target.format(self.url, self.class_id, self.quiz_id), headers=self.header)
 
 		submission_list = []
@@ -243,7 +245,7 @@ class Quiz(Collector):
 				return events
 
 		print("Rebuilding Quiz Events Json")
-		api_target = '{}/api/v1/courses/{}/quizzes/{}/submissions/{}/events'
+		api_target = '{}/api/v1/courses/{}/quizzes/{}/submissions/{}/events?per_page=100'
 
 		# Builds a dictionary containing events linked to student canvas ids
 		quiz_events = {}

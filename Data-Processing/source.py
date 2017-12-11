@@ -14,13 +14,13 @@ nccs_token = keys[0]
 nccs_url = 'http://nccs.instructure.com'
 nccs_header = {'Authorization': 'Bearer {}'.format(nccs_token)}
 
-example_module = Module(url=nccs_url, header=nccs_header, class_id=9360, module_id=8803)
+example_module = Module(url=nccs_url, header=nccs_header, class_id=9709, module_id=8894)
 
 
 def main():
 	quiz_list = []
 	for quizzes in example_module.get_module_items()['Subsections']['Quizzes']:
-		quiz_list.append(Quiz(quizzes, url=nccs_url, header=nccs_header, class_id=9360))
+		quiz_list.append(Quiz(quizzes, url=nccs_url, header=nccs_header, class_id=9709))
 	start = time.time()
 
 	gatherer = quiz_list[0]
