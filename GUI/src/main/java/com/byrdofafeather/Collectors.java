@@ -15,7 +15,7 @@ import java.util.Map;
 
 
 class Collectors {
-	public String header[] = new String[2];
+	String header[] = new String[2];
 	String url = null;
 	String classID = null;
 
@@ -31,6 +31,7 @@ class Collectors {
 
 	/**
 	 * Gets all of the users in a specific class
+	 *
 	 * @return A map linking user IDs to names
 	 * @see Collectors
 	 */
@@ -54,9 +55,7 @@ class Collectors {
 
 				userDict.put(userID, userName);
 			}
-		}
-
-		catch (UnirestException e) {
+		} catch (UnirestException e) {
 			System.out.println(e.toString());
 			userDict = null;
 		}
@@ -68,6 +67,7 @@ class Collectors {
 
 /**
  * Collector Subclass that represents and collects data from one module
+ *
  * @see Collectors
  */
 class Module extends Collectors {
@@ -80,18 +80,18 @@ class Module extends Collectors {
 
 	/**
 	 * Gets all the objects in a module that look like notes (ExternalURLS and Files)
+	 *
 	 * @param items The original JSONArray representing a fully returned module items query.
 	 * @return An array containing JSON Objects representing items from the original array that fit note criteria.
 	 */
-	private ArrayList<JSONObject> getModuleNotes(JSONArray items){
+	private ArrayList<JSONObject> getModuleNotes(JSONArray items) {
 		ArrayList<JSONObject> quizArray = new ArrayList<JSONObject>();
 		for (int i = 0; i < items.length(); i++) {
 			JSONObject cur = items.getJSONObject(i);
 			String type = cur.getString("type");
 			if (type.equals("File")) {
 				quizArray.add(items.getJSONObject(i));
-			}
-			else if (type.equals("ExternalUrl")) {
+			} else if (type.equals("ExternalUrl")) {
 				quizArray.add(items.getJSONObject(i));
 			}
 		}
@@ -100,10 +100,11 @@ class Module extends Collectors {
 
 	/**
 	 * Gets all the objects in a module that are labeled quizzes
+	 *
 	 * @param items The original JSONArray representing a fully returned module items query.
 	 * @return An array containing JSON Objects representing items from the original array that fit Quiz criteria.
 	 */
-	private ArrayList<JSONObject> getModuleQuizzes(JSONArray items){
+	private ArrayList<JSONObject> getModuleQuizzes(JSONArray items) {
 		ArrayList<JSONObject> quizArray = new ArrayList<JSONObject>();
 		for (int i = 0; i < items.length(); i++) {
 			JSONObject cur = items.getJSONObject(i);
@@ -117,9 +118,10 @@ class Module extends Collectors {
 
 	/**
 	 * Gets all the items in a module in a overall and subsections format
+	 *
 	 * @return JSONArray containing the full list of module items
 	 */
-	public JSONArray getModuleItems(){
+	public JSONArray getModuleItems() {
 		String apiTarget = url + "/api/v1/courses/" + classID + "/modules/" + moduleID + "/items";
 		HttpResponse<JsonNode> items;
 		JSONArray Overall;
@@ -128,9 +130,7 @@ class Module extends Collectors {
 			items = Unirest.get(apiTarget).header(header[0], header[1]).asJson();
 			JsonNode itemsBody = items.getBody();
 			Overall = itemsBody.getArray();
-		}
-
-		catch (UnirestException e) {
+		} catch (UnirestException e) {
 			System.out.println(e.toString());
 			Overall = null;
 		}
@@ -140,11 +140,12 @@ class Module extends Collectors {
 
 	/**
 	 * Gets subsection items from the module and maps them to ArrayLists
+	 *
+	 * @return A map linking Notes and Quizzes together Map<Section, ArrayList<JSONObject>>
 	 * @see Module#getModuleQuizzes(JSONArray)
 	 * @see Module#getModuleNotes(JSONArray)
-	 * @return A map linking Notes and Quizzes together Map<Section, ArrayList<JSONObject>>
 	 */
-	public Map<String, ArrayList<JSONObject>> getModuleSubsections(){
+	public Map<String, ArrayList<JSONObject>> getModuleSubsections() {
 		String apiTarget = url + "/api/v1/courses/" + classID + "/modules/" + moduleID + "/items";
 		HttpResponse<JsonNode> items;
 		Map<String, ArrayList<JSONObject>> subsections = new HashMap<String, ArrayList<JSONObject>>();
@@ -156,9 +157,7 @@ class Module extends Collectors {
 
 			subsections.put("Notes", this.getModuleNotes(itemsArray));
 			subsections.put("Quizzes", this.getModuleQuizzes(itemsArray));
-		}
-
-		catch (UnirestException e) {
+		} catch (UnirestException e) {
 			System.out.println(e.toString());
 		}
 		return subsections;
@@ -173,12 +172,11 @@ class Quiz extends Collectors {
 		super(usrURL, usrHeader, usrClassID);
 		quizID = Integer.toString(userQuizID);
 		submissionIndex = getUserSubmissionIndex();
-		System.out.println(getQuizEvents());
-		getQuestionsAnswered();
 	}
 
 	/**
 	 * Gets a submission index, linking users to their quiz submissions
+	 *
 	 * @return A Map connecting a users submission ID to their actual user ID.
 	 */
 	private Map<String, String> getUserSubmissionIndex() {
@@ -201,20 +199,46 @@ class Quiz extends Collectors {
 
 				index.put(submissionID, userID);
 			}
-		}
-
-		catch (UnirestException e) {
+		} catch (UnirestException e) {
 			System.out.println(e.toString());
 		}
 
 		return index;
 	}
 
+	public ArrayList<JSONObject> getSubmissionEvents() {
+		System.out.println("Getting Submission Events");
+		String apiTarget = url + "/api/v1/courses/" + classID + "/quizzes/" + quizID + "/submissions?per_page=50";
+		ArrayList<JSONObject> submissionEvents = new ArrayList<JSONObject>();
+
+		try {
+			HttpResponse<JsonNode> submissionObjects = Unirest.get(apiTarget).header(header[0], header[1]).asJson();
+
+			JsonNode submissionBody = submissionObjects.getBody();
+			JSONArray submissionArray = submissionBody.getArray();
+			JSONObject submissionsList = submissionArray.getJSONObject(0); // Allows for string indexing
+			JSONArray submissions = submissionsList.getJSONArray("quiz_submissions"); // Gets the actual list
+
+			for (int i = 0; i < submissions.length(); i++) {
+				JSONObject cur = submissions.getJSONObject(i);
+				submissionEvents.add(cur);
+			}
+
+		} catch (UnirestException e) {
+			System.out.println(e.toString());
+		}
+
+		return submissionEvents;
+	}
+
+
 	/**
 	 * Gets the individual IDS for questions and specific information
+	 *
 	 * @return a Map with a String array containing the original text, placement, and answers
 	 */
 	private Map<String, String[]> getQuizQuestionIDs() {
+		System.out.println("Getting Quiz Question IDs");
 		String apiTarget = url + "/api/v1/courses/" + classID + "/quizzes/" + quizID + "/questions";
 		Map<String, String[]> questionIDs = new HashMap<String, String[]>();
 
@@ -222,7 +246,7 @@ class Quiz extends Collectors {
 			HttpResponse<JsonNode> questions = Unirest.get(apiTarget).header(header[0], header[1]).asJson();
 			JsonNode questionsBody = questions.getBody();
 			JSONArray questionsArray = questionsBody.getArray();
-			for (int i = 0; i < questionsArray.length(); i ++) {
+			for (int i = 0; i < questionsArray.length(); i++) {
 				JSONObject curQuestion = questionsArray.getJSONObject(i);
 				String questionID = Integer.toString(curQuestion.getInt("id"));
 
@@ -231,13 +255,13 @@ class Quiz extends Collectors {
 				String questionAnswers = curQuestion.getJSONArray("answers").toString();
 				String curArray[] = new String[3];
 
-				curArray[0] = questionText; curArray[1] = questionPosition; curArray[2] = questionAnswers;
+				curArray[0] = questionText;
+				curArray[1] = questionPosition;
+				curArray[2] = questionAnswers;
 
 				questionIDs.put(questionID, curArray);
 			}
-		}
-
-		catch (UnirestException e){
+		} catch (UnirestException e) {
 			System.out.println(e.toString());
 		}
 
@@ -246,14 +270,17 @@ class Quiz extends Collectors {
 
 	/**
 	 * Gets a Map of users linked to their question answered event(s) for this particular quiz
+	 *
 	 * @return A map indexed with user ids and resulting in a array of question answered event jsons
 	 * @see Quiz#getQuizEvents()
 	 * @see Quiz#getQuizQuestionIDs()
 	 */
 	Map<String, ArrayList<JSONObject>> getQuestionsAnswered() {
+		System.out.println("Getting Questions Answered");
 		Map<String, JSONObject> events = getQuizEvents();
 		Map<String, ArrayList<JSONObject>> questionsAnswered = new HashMap<String, ArrayList<JSONObject>>();
 		List<String> userIDs = new ArrayList<String>(events.keySet());
+		Map<String, String[]> questionIDs = getQuizQuestionIDs();
 
 		for (int i = 0; i < events.size(); i++) {
 			String curUser = userIDs.get(i);
@@ -270,14 +297,10 @@ class Quiz extends Collectors {
 			}
 			questionsAnswered.put(curUser, curQuestionsAnswered);
 
-			Map<String, String[]> questionIDs = getQuizQuestionIDs();
-
 			for (int g = 0; g < questionsAnswered.get(curUser).size(); g++) {
 				JSONObject curEvent = questionsAnswered.get(curUser).get(g);
 				JSONArray curDataArray = curEvent.getJSONArray("event_data");
 				JSONObject curData = curDataArray.getJSONObject(0);
-
-				System.out.println(curData);
 
 				String currentID = Integer.toString(curData.getInt("quiz_question_id"));
 				String quizText = questionIDs.get(currentID)[0];
@@ -286,25 +309,51 @@ class Quiz extends Collectors {
 				curData.put("question_text", quizText);
 				curData.put("order", quizOrder);
 			}
-
 			questionsAnswered.get(curUser).remove(0);
-			System.out.println(questionsAnswered);
-
 		}
 		return questionsAnswered;
 	}
 
+	Map<String, ArrayList<JSONObject>> getPageLeaves() {
+		System.out.println("Getting Page Leaves");
+		Map<String, JSONObject> events = getQuizEvents();
+		Map<String, ArrayList<JSONObject>> pageLeaves = new HashMap<String, ArrayList<JSONObject>>();
+		List<String> userIDs = new ArrayList<String>(events.keySet());
+
+		for (int i = 0; i < events.size(); i++) {
+			String curUser = userIDs.get(i);
+			JSONObject curEventsObjects = events.get(curUser);
+			ArrayList<JSONObject> curQuizEvents = new ArrayList<JSONObject>();
+
+			JSONArray curEventsArray = curEventsObjects.getJSONArray("quiz_submission_events");
+
+			for (int j = 0; j < curEventsArray.length(); j++) {
+				JSONObject curEvent = curEventsArray.getJSONObject(j);
+				if (curEvent.getString("event_type").equals("page_blurred") |
+						curEvent.getString("event_type").equals("page_focused")) {
+
+					curQuizEvents.add(curEvent);
+				}
+			}
+			pageLeaves.put(curUser, curQuizEvents);
+		}
+
+		return pageLeaves;
+	}
+
 	/**
 	 * Gets the events of a quiz
+	 *
 	 * @return A map indexed by user ID and resulting in a JSONObject
 	 * @see Quiz#getUserSubmissionIndex()
 	 */
-	Map<String, JSONObject> getQuizEvents(){
+	Map<String, JSONObject> getQuizEvents() {
+		System.out.println("Getting Quiz Events");
 		String apiTarget = url + "/api/v1/courses/" + classID + "/quizzes/" + quizID + "/submissions/";
 		Map<String, JSONObject> events = new HashMap<String, JSONObject>();
 		List<String> submissionIDs = new ArrayList<String>(submissionIndex.keySet());
 
-		for (int i = 0; i < submissionIndex.size(); i++){
+		for (int i = 0; i < submissionIndex.size(); i++) {
 			String submissionID = submissionIDs.get(i);
 			String curAPITarget = apiTarget + submissionID + "/events";
 			try {
@@ -315,24 +364,19 @@ class Quiz extends Collectors {
 
 				String userID = submissionIndex.get(submissionID);
 				events.put(userID, curEvents);
-			}
-
-			catch (UnirestException e){
+			} catch (UnirestException e) {
 				System.out.println(e.toString());
 			}
 		}
 		return events;
 	}
-
-
-
 }
 
-class Discussion extends Collectors {
-	String discussionID = null;
-
-	Discussion(String usrURL, String[] usrHeader, int usrClassID, int usrDiscussionID) {
-		super(usrURL, usrHeader, usrClassID);
-		discussionID = Integer.toString(usrDiscussionID);
-	}
-}
+//class Discussion extends Collectors {
+//	String discussionID = null;
+//
+//	Discussion(String usrURL, String[] usrHeader, int usrClassID, int usrDiscussionID) {
+//		super(usrURL, usrHeader, usrClassID);
+//		discussionID = Integer.toString(usrDiscussionID);
+//	}
+//}

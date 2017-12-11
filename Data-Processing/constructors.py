@@ -7,15 +7,12 @@ import requests
 
 
 class QuizEvents:
-	def __init__(self, quiz, questions_answered=None, anon=True):
-		print("Initializing Quiz")
+	def __init__(self, quiz, anon=True):
+		print("Initializing Quiz Events")
 		self.anon = anon
 		self.data_set = {}
 		self.quiz = quiz
-
-		if not questions_answered: self._get_questions_answered()
-		else: self.questions_answered = questions_answered
-
+		self._get_questions_answered()
 		self._init_data_set()
 
 	def _get_questions_answered(self):
