@@ -27,8 +27,13 @@ def main():
 	constructor = QuizEvents(gatherer, anon=False)
 	dev_set = constructor.build_dataframe()
 	print(dev_set)
+
+	dev_set.drop("Adeline Joplin", inplace=True)
+	dev_set.drop("Morgan Bassett", inplace=True)
+	dev_set.drop("Jonathan Arias-Valencia", inplace=True)
+
 	jack_walsh = predictors.AutoEncoder(dev_set, dev_set)
-	jack_walsh.run(layer_1_f=40, layer_2_f=35, learning_rate=.1, epochs=30000, test_thresh=.2)
+	jack_walsh.run(layer_1_f=40, layer_2_f=15, learning_rate=1, epochs=30000, test_thresh=.2)
 	end = time.time()
 
 	print("TOTAL {}".format(end - start))

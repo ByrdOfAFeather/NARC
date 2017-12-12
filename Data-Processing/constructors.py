@@ -30,7 +30,7 @@ class QuizEvents:
 			self.data_set[user_id] = {}
 		self.data_set['Overall'] = {}
 
-		# self._build_average_question_time()
+		self._build_average_question_time()
 		self._build_user_scores()
 		self._build_user_page_leaves()
 		self._build_time_taken()

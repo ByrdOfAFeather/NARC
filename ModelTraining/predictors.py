@@ -19,31 +19,38 @@ class AutoEncoder:
 		if len(test_data_set): self.test_index = test_data_set.index.values
 		self.test_data_set = self.data_scaler.transform(test_data_set)
 
-	def run(self, learning_rate=.01, layer_1_f=40, layer_2_f=20, epochs=1000, test_thresh=.3):
+	def run(self, learning_rate=.01, layer_1_f=40, layer_2_f=20, layer_3_f=10,
+	        epochs=1000, test_thresh=.3):
 		input_features = self.data_set.shape[1]
 		weights = {
 			'encoder_h1': tf.Variable(tf.random_normal([input_features, layer_1_f])),
 			'encoder_h2': tf.Variable(tf.random_normal([layer_1_f, layer_2_f])),
-			'decoder_h1': tf.Variable(tf.random_normal([layer_2_f, layer_1_f])),
-			'decoder_h2': tf.Variable(tf.random_normal([layer_1_f, input_features]))
+			'encoder_h3': tf.Variable(tf.random_normal([layer_2_f, layer_3_f])),
+			'decoder_h1': tf.Variable(tf.random_normal([layer_3_f, layer_2_f])),
+			'decoder_h2': tf.Variable(tf.random_normal([layer_2_f, layer_1_f])),
+			'decoder_h3': tf.Variable(tf.random_normal([layer_1_f, input_features]))
 		}
 
 		bias = {
 			'encoder_b1': tf.Variable(tf.random_normal([layer_1_f])),
 			'encoder_b2': tf.Variable(tf.random_normal([layer_2_f])),
-			'decoder_b1': tf.Variable(tf.random_normal([layer_1_f])),
-			'decoder_b2': tf.Variable(tf.random_normal([input_features]))
+			'encoder_b3': tf.Variable(tf.random_normal([layer_3_f])),
+			'decoder_b1': tf.Variable(tf.random_normal([layer_2_f])),
+			'decoder_b2': tf.Variable(tf.random_normal([layer_1_f])),
+			'decoder_b3': tf.Variable(tf.random_normal([input_features]))
 		}
 
 		def encoder(X):
 			layer_1 = tf.nn.sigmoid(tf.add(tf.matmul(X, weights['encoder_h1']), bias['encoder_b1']))
 			layer_2 = tf.nn.sigmoid(tf.add(tf.matmul(layer_1, weights['encoder_h2']), bias['encoder_b2']))
-			return layer_2
+			layer_3 = tf.nn.sigmoid(tf.add(tf.matmul(layer_2, weights['encoder_h3']), bias['encoder_b3']))
+			return layer_3
 
 		def decoder(X):
 			layer_1 = tf.nn.sigmoid(tf.add(tf.matmul(X, weights['decoder_h1']), bias['decoder_b1']))
 			layer_2 = tf.nn.sigmoid(tf.add(tf.matmul(layer_1, weights['decoder_h2']), bias['decoder_b2']))
-			return layer_2
+			layer_3 = tf.nn.sigmoid(tf.add(tf.matmul(layer_2, weights['decoder_h3']), bias['decoder_b3']))
+			return layer_3
 
 		data = tf.placeholder(dtype=tf.float32, shape=[None, input_features], name='data-set')
 		encoder_op = encoder(data)

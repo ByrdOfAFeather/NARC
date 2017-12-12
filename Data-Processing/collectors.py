@@ -245,7 +245,7 @@ class Quiz(Collector):
 				return events
 
 		print("Rebuilding Quiz Events Json")
-		api_target = '{}/api/v1/courses/{}/quizzes/{}/submissions/{}/events?per_page=100'
+		api_target = '{}/api/v1/courses/{}/quizzes/{}/submissions/{}/events?per_page=10000'
 
 		# Builds a dictionary containing events linked to student canvas ids
 		quiz_events = {}
