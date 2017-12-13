@@ -26,9 +26,11 @@ def main():
 	gatherer = quiz_list[0]
 	constructor = QuizEvents(gatherer, anon=False)
 	dev_set = constructor.build_dataframe()
+
 	print(dev_set)
 	jack_walsh = predictors.AutoEncoder(dev_set, dev_set)
-	jack_walsh.run(learning_rate=1, epochs=30000, test_thresh=.2)
+	jack_walsh.PCA()
+	jack_walsh.run(layer_1_f=10, layer_2_f=5, layer_3_f=2, learning_rate=1, epochs=30000, test_thresh=.2)
 	end = time.time()
 
 	print("TOTAL {}".format(end - start))

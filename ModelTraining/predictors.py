@@ -2,6 +2,7 @@ import os
 import tensorflow as tf
 import numpy as np
 from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
 from datetime import datetime
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -13,6 +14,9 @@ class AutoEncoder:
 		self.data_set = self.data_scaler.transform(data_set)
 		if len(test_data_set): self.test_index = test_data_set.index.values
 		self.test_data_set = self.data_scaler.transform(test_data_set)
+
+	def PCA(self):
+		self.data_set = PCA().fit_transform(X=self.data_set)
 
 	def run(self, learning_rate=.01, layer_1_f=40, layer_2_f=20, layer_3_f=10,
 	        epochs=1000, test_thresh=.3):
