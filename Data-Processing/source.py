@@ -4,7 +4,6 @@
 # Main file for data analytics
 # @author: ByrdOfAFeather
 
-
 from collectors import *
 from constructors import *
 from secrets import keys
@@ -14,26 +13,36 @@ nccs_token = keys[0]
 nccs_url = 'http://nccs.instructure.com'
 nccs_header = {'Authorization': 'Bearer {}'.format(nccs_token)}
 
-example_module = Module(url=nccs_url, header=nccs_header, class_id=9709, module_id=8894)
+example_module = Module(url=nccs_url, header=nccs_header, class_id=9713, module_id=8957)
 
 
 def main():
-	quiz_list = []
-	for quizzes in example_module.get_module_items()['Subsections']['Quizzes']:
-		quiz_list.append(Quiz(quizzes, url=nccs_url, header=nccs_header, class_id=9709))
 	start = time.time()
 
-	gatherer = quiz_list[0]
+	gatherer = Quiz(quiz_id=10553, url=nccs_url, header=nccs_header, class_id=9713)
 	constructor = QuizEvents(gatherer, anon=False)
 	dev_set = constructor.build_dataframe()
 
 	print(dev_set)
+
 	jack_walsh = predictors.AutoEncoder(dev_set, dev_set)
 	jack_walsh.PCA()
-	jack_walsh.run(layer_1_f=10, layer_2_f=5, layer_3_f=2, learning_rate=1, epochs=30000, test_thresh=.2)
-	end = time.time()
 
-	print("TOTAL {}".format(end - start))
+	# Iterates for a obscene amount of times to produce results to analyze [IGNORABLE]
+	for i in range(0, 1001):
+		test = jack_walsh.separate(learning_rate=.1, epochs=500000, test_thresh=.4)
+
+		test_file = open("temp/classification/{}_{}.txt".format(str(jack_walsh.loss),
+		                                                       datetime.datetime.now().strftime("%Y-%m-%dT%H%M%S")),
+		                 'w')
+		omega = predictors.KMeansSeparator(test)
+		results = omega.classify(clusters=2, n_init=80000)
+		test_file.write(str(results))
+
+		end = time.time()
+		test_file.close()
+
+		print("TOTAL {}".format(end - start))
 
 
 if __name__ == "__main__": main()

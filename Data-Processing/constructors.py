@@ -7,9 +7,10 @@ import requests
 
 
 class QuizEvents:
+	"""A builder of datasets for quiz event information"""
 	def __init__(self, quiz, questions_answered=None, anon=True):
 		print("Initializing Quiz")
-		self.anon = anon
+		self.anon = anon  # anon = anonymous (false: index = user id & true: index = user name)
 		self.data_set = {}
 		self.quiz = quiz
 
@@ -19,12 +20,16 @@ class QuizEvents:
 		self._init_data_set()
 
 	def _get_questions_answered(self):
+		"""Gets submission events and questions answered events
+		"""
 		print("Building Questions Answered")
 		self.submissions = self.quiz.submissions[1]
 		self.questions_answered = self.quiz.get_questions_answered()
 
 	def _init_data_set(self):
-
+		"""Creates the entire data set
+		"""
+		# Dictionary key initialization
 		for submit in self.submissions:
 			user_id = str(submit['user_id'])
 			self.data_set[user_id] = {}
@@ -37,6 +42,8 @@ class QuizEvents:
 		if not self.anon: self._non_anon_data_set()
 
 	def _build_average_question_time(self):
+		"""Adds the average question time as a feature to the current data set
+		"""
 		overall_distance_list = []
 		for students, answers in self.questions_answered.items():
 			temp_time_list = []
@@ -68,6 +75,8 @@ class QuizEvents:
 		self.data_set['Overall']['average_time_between_questions'] = overall_average_time
 
 	def _build_user_scores(self):
+		"""Adds the user score as a feature to the current data set
+		"""
 		score_list = []
 		for submit in self.submissions:
 			current_points = submit['kept_score']
@@ -81,6 +90,8 @@ class QuizEvents:
 		self.data_set['Overall']['score'] = overall_average
 
 	def _build_user_page_leaves(self):
+		"""Adds the amount of times a user leaves a page as a feature to the current data set
+		"""
 		all_page_leaves = []
 		page_leaves = []
 		page_leave_list = self.quiz.get_page_leaves()
@@ -104,16 +115,27 @@ class QuizEvents:
 		self.data_set['Overall']['time_taken'] = overall_average
 
 	def _get_quiz_distance(self):
+		"""Gets the "distance" between the current quiz and average quiz score of a user
+		TO BE IMPLEMENTED
+		"""
 		pass
 
 	def _non_anon_data_set(self):
+		"""Gets the user names and assigns them as indexes in the data set
+		"""
 		rebuild = False
 		if os.path.exists("temp/user_names_{}.json".format(self.quiz.quiz_id)):
 			print("Getting Already Made User Name List")
 			quiz_users = json.load(open("temp/user_names_{}.json".format(self.quiz.quiz_id)))
+			# Check to see if new submissions have come in
 			if len(quiz_users) < len(self.data_set):
 				rebuild = True
-			else: self.data_set = quiz_users
+			else:
+				# Sets pandas options for displaying a much larger data set
+				pd.set_option('display.max_columns', 10)
+				pd.set_option('display.width', 1000)
+
+				self.data_set = quiz_users
 
 		else: rebuild = True
 
@@ -125,10 +147,9 @@ class QuizEvents:
 				try:
 					name_set[profile.json()['name']] = values
 				except KeyError:
-					print(ids)
-					print(profile.json())
-					name_set['Overall'] = values
+					name_set['Overall'] = values  # Overall throws key error
 
+			# Sets pandas options for displaying a much larger data set
 			pd.set_option('display.max_columns', 10)
 			pd.set_option('display.width', 1000)
 
@@ -138,6 +159,10 @@ class QuizEvents:
 			self.data_set = name_set
 
 	def get_average_question_time(self, user_id='Overall'):
+		"""Simple method to get average question time for a individual user
+		:param user_id: Set to Overall (average) by default, finds the individual user in a dataframe
+		:return: float value of average time between questions
+		"""
 		assert type(user_id) is str, "Data is indexed by {} not {}".format(str, type(user_id))
 
 		try:
@@ -148,6 +173,10 @@ class QuizEvents:
 			return None
 
 	def get_user_score(self, user_id='Overall'):
+		"""Simple method to get a score for a individual user
+		:param user_id: Set to Overall (average) by default, finds the individual user in a dataframe
+		:return: Float values of a user's score
+		"""
 		assert type(user_id) is str, "Data is indexed by {} not {}".format(str, type(user_id))
 
 		try:
@@ -158,6 +187,10 @@ class QuizEvents:
 			return None
 
 	def get_page_leaves(self, user_id='Overall'):
+		"""Simple method of getting the page leaves of a individual user
+		:param user_id: Set to Overall (average) by default, finds the individual user in a dataframe
+		:return: Float value of the number of page leaves a user has
+		"""
 		assert type(user_id) is str, "Data is indexed by {} not {}".format(str, type(user_id))
 
 		try:
@@ -168,11 +201,16 @@ class QuizEvents:
 			return None
 
 	def build_dataframe(self):
+		"""Builds a dataframe based on the current data set
+		:return: Pandas dataframe containing input data
+		"""
+		# Creates a copy to preserve the integrity of the overall data in the data_set variable
 		data_set_copy = self.data_set.copy()
 		del self.data_set['Overall']
 		data_set = self.data_set
+
 		self.data_set = data_set_copy
 		del data_set_copy
+
 		without_nan = pd.DataFrame.from_dict(data_set, orient='index')
-		# without_nan = without_nan[without_nan.average_time_between_questions.notnull()]
 		return without_nan

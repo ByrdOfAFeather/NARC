@@ -94,14 +94,14 @@ class Module(Collector):
 		return module_dict
 
 	def module_times(self):
+		"""Gets the amount of time a user spent on module items in a quizzes module
+		TO BE IMPLEMENTED
+		"""
 		for students in self.get_class_users('temp', 'temp'):
 			# url = r'{}/api/v1/courses/{}/analytics/users/{}/activity'
 			api_target = r'{}/api/v1/users/{}/page_views'
 			response = requests.put(api_target.format(self.url, students), headers=self.header)
 			# print(response.json())
-
-	def get_average_individual_module_items_time(self):
-		pass
 
 
 class Quiz(Collector):
@@ -118,8 +118,6 @@ class Quiz(Collector):
 		"""
 		api_target = r'{}/api/v1/courses/{}/quizzes/{}/questions?per_page=100'
 		quiz_response = requests.put(api_target.format(self.url, self.class_id, self.quiz_id), headers=self.header)
-
-		print(quiz_response.json())
 
 		quiz_question_id_dict = {}
 		for questions in quiz_response.json():
@@ -208,6 +206,10 @@ class Quiz(Collector):
 		return questions_answered_dict
 
 	def get_page_leaves(self):
+		"""
+		Gets the amount of times a user left the page during the quiz * 2 (times left + times returned)
+		:return: Dictionary linking user page leaves to user id
+		"""
 		if os.path.exists("temp/page_leaves_{}.json".format(self.quiz_id)):
 			page_leaves_dict = json.load(open("temp/page_leaves_{}.json".format(self.quiz_id)))
 
