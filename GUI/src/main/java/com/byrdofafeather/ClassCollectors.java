@@ -14,16 +14,16 @@ import java.util.List;
 import java.util.Map;
 
 
-class Collectors {
+class ClassCollectors {
 	String header[] = new String[2];
 	String url = null;
 	String classID = null;
 
-	Collectors() {
+	ClassCollectors() {
 		System.out.println("Did not get API information! Things probably aren't going to work!");
 	}
 
-	Collectors(String usrURL, String[] usrHeader, int usrClassID) {
+	ClassCollectors(String usrURL, String[] usrHeader, int usrClassID) {
 		header = usrHeader;
 		url = usrURL;
 		classID = Integer.toString(usrClassID);
@@ -33,7 +33,7 @@ class Collectors {
 	 * Gets all of the users in a specific class
 	 *
 	 * @return A map linking user IDs to names
-	 * @see Collectors
+	 * @see ClassCollectors
 	 */
 	Map<String, String> getClassUsers() {
 		String apiTarget = url + "/api/v1/courses/" + classID + "/enrollments?per_page=50";
@@ -48,6 +48,7 @@ class Collectors {
 			for (int i = 0; i < userArray.length(); i++) {
 
 				JSONObject cur = userArray.getJSONObject(i);
+				System.out.println(cur);
 				String userID = Integer.toString(cur.getInt("user_id"));
 
 				JSONObject user = cur.getJSONObject("user");
@@ -63,19 +64,44 @@ class Collectors {
 		return userDict;
 	}
 
+	Map<String, String> getCourseModules() {
+		String apiTarget = url + "/api/v1/courses/" + classID + "/modules";
+		HttpResponse<JsonNode> modules;
+		Map<String, String> modulesDict = new HashMap<>();
+
+		try {
+			modules = Unirest.get(apiTarget).header(header[0], header[1]).asJson();
+			JsonNode modulesBody = modules.getBody();
+			JSONArray modulesArray = modulesBody.getArray();
+			for (int i = 0; i < modulesArray.length(); i++) {
+				JSONObject currentModule = modulesArray.getJSONObject(i);
+				if (currentModule.getBoolean("published")) {
+					String currentName = currentModule.getString("name");
+					String currentID = Integer.toString(currentModule.getInt("id"));
+					modulesDict.put(currentName, currentID);
+				}
+			}
+		}
+
+		catch (UnirestException e) { System.out.println(e.toString()); }
+
+		return modulesDict;
+	}
+
 }
 
 /**
  * Collector Subclass that represents and collects data from one module
  *
- * @see Collectors
+ * @see ClassCollectors
  */
-class Module extends Collectors {
+class Module extends ClassCollectors {
 	String moduleID = null;
 
 	Module(String usrURL, String[] usrHeader, int usrClassID, int usrModuleID) {
 		super(usrURL, usrHeader, usrClassID);
 		moduleID = Integer.toString(usrModuleID);
+		getModuleQuizzesDict();
 	}
 
 	/**
@@ -162,9 +188,24 @@ class Module extends Collectors {
 		}
 		return subsections;
 	}
+
+	public Map<String, String> getModuleQuizzesDict() {
+		Map<String, ArrayList<JSONObject>> subsections = getModuleSubsections();
+		ArrayList<JSONObject> quizObjects = subsections.get("Quizzes");
+		Map<String, String> quizDict = new HashMap<>();
+
+		for (int i = 0; i < quizObjects.size(); i++) {
+			JSONObject currentQuiz = quizObjects.get(i);
+			String quizName = currentQuiz.getString("title");
+			String quizID = Integer.toString(currentQuiz.getInt("content_id"));
+			quizDict.put(quizName, quizID);
+		}
+
+		return quizDict;
+	}
 }
 
-class Quiz extends Collectors {
+class Quiz extends ClassCollectors {
 	String quizID = null;
 	Map<String, String> submissionIndex;
 
@@ -372,7 +413,7 @@ class Quiz extends Collectors {
 	}
 }
 
-//class Discussion extends Collectors {
+//class Discussion extends ClassCollectors {
 //	String discussionID = null;
 //
 //	Discussion(String usrURL, String[] usrHeader, int usrClassID, int usrDiscussionID) {
