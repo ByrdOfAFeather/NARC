@@ -3,7 +3,18 @@ Data-Processing/Discussions
 Data-Processing/Calculus Discussions
 Data-Processing/temp
 Data-Processing/logs
-Model-Training/tutorial.py
+GUI/config
 
 *.pyc
 *.idea
+*.class
+*.log
+*.ctxt
+.mtj.tmp/
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+hs_err_pid*
