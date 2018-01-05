@@ -9,6 +9,19 @@ from datetime import datetime
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
+if not os.path.exists(r'..\.\temp'):
+	os.makedirs(r'..\.\temp')
+
+if not os.path.exists(r'..\.\temp/model_info'):
+	os.makedirs(r'..\.\temp/model_info')
+
+if not os.path.exists(r'..\.\temp/model_info/results'):
+	os.makedirs(r"..\.\temp/model_info/results")
+
+if not os.path.exists(r'..\.\temp/model_info/classification'):
+	os.makedirs(r'..\.\temp/model_info/classification')
+
+temp_dir = r'..\.\temp/model_info'
 
 class AutoEncoder:
 	"""Main class for implementing a AutoEncoder into Tensor flow
@@ -36,6 +49,7 @@ class AutoEncoder:
 		"""
 		if not test_thresh: test_thresh = sum([i[1] for i in anomaly_rates]) / len(anomaly_rates)
 		else: test_thresh = test_thresh
+		print("THIS IS THE TEST THRESHOLD : {}".format(test_thresh))
 		anomalies = []
 		for items in anomaly_rates:
 			if items[1] >= test_thresh:
@@ -43,8 +57,8 @@ class AutoEncoder:
 				anomalies.append(items)
 		return anomalies
 
-	def separate(self, learning_rate=.01, layer_1_f=10, layer_2_f=5, layer_3_f=2,
-	        epochs=1000, test_thresh=.3):
+	def separate(self, learning_rate=.08, layer_1_f=10, layer_2_f=5, layer_3_f=2,
+	        epochs=800000, test_thresh=.1, test=True, labelvar=None, controller=None):
 		"""Separates non-anomalous data from anomalous data
 		:param learning_rate: Learning rate for Adagradoptimizer (implemented from Tensor flow)
 		:param layer_1_f: The number of neurons in the first hidden layer
@@ -52,47 +66,53 @@ class AutoEncoder:
 		:param layer_3_f: The number of neurons in the third hidden layer
 		:param epochs: The number of iterations to preform Adagradoptimization
 		:param test_thresh: The threshold by which to classify anomalies
+		:param test: If the test set should be used
 		:return: A list of anomalies (index, data)
 		"""
 		anomaly_list = []
-		time = datetime.utcnow().strftime('%Y%m%d%H%M%S')
-		log_root = 'temp'
+		time = datetime.now().strftime("%Y-%m-%d T-%H-%M-%S")
 		log_name = 'run-{}'.format(time)
-		log_dir = '{}/logs/{}/'.format(log_root, log_name)
+		log_dir = '{}/logs/{}/'.format(temp_dir, log_name)
 
 		input_features = self.data_set.shape[1]
 
 		weights = {
-			'encoder_h1': tf.Variable(tf.random_normal([input_features, layer_1_f])),
-			'encoder_h2': tf.Variable(tf.random_normal([layer_1_f, layer_2_f])),
-			'encoder_h3': tf.Variable(tf.random_normal([layer_2_f, layer_3_f])),
-			'decoder_h1': tf.Variable(tf.random_normal([layer_3_f, layer_2_f])),
-			'decoder_h2': tf.Variable(tf.random_normal([layer_2_f, layer_1_f])),
-			'decoder_h3': tf.Variable(tf.random_normal([layer_1_f, input_features]))
+			'encoder_h1': tf.Variable(tf.random_normal([input_features, layer_1_f]), name="encoder_h1"),
+			'encoder_h2': tf.Variable(tf.random_normal([layer_1_f, layer_2_f]), name="encoder_h2"),
+			'encoder_h3': tf.Variable(tf.random_normal([layer_2_f, layer_3_f]), name="encoder_h3"),
+			'decoder_h1': tf.Variable(tf.random_normal([layer_3_f, layer_2_f]), name="decoder_h1"),
+			'decoder_h2': tf.Variable(tf.random_normal([layer_2_f, layer_1_f]), name="decoder_h2"),
+			'decoder_h3': tf.Variable(tf.random_normal([layer_1_f, input_features]), name="decoder_h3")
 		}
 
 		bias = {
-			'encoder_b1': tf.Variable(tf.zeros([layer_1_f])),
-			'encoder_b2': tf.Variable(tf.zeros([layer_2_f])),
-			'encoder_b3': tf.Variable(tf.zeros([layer_3_f])),
-			'decoder_b1': tf.Variable(tf.zeros([layer_2_f])),
-			'decoder_b2': tf.Variable(tf.zeros([layer_1_f])),
-			'decoder_b3': tf.Variable(tf.zeros([input_features]))
+			'encoder_b1': tf.Variable(tf.zeros([layer_1_f]), name="encoder_b1"),
+			'encoder_b2': tf.Variable(tf.zeros([layer_2_f]), name="encoder_b2"),
+			'encoder_b3': tf.Variable(tf.zeros([layer_3_f]), name="encoder_b3"),
+			'decoder_b1': tf.Variable(tf.zeros([layer_2_f]), name="decoder_b1"),
+			'decoder_b2': tf.Variable(tf.zeros([layer_1_f]), name="decoder_b2"),
+			'decoder_b3': tf.Variable(tf.zeros([input_features]), name="decoder_b3")
 		}
 
 		# Hyperbolic tangent activation functions representing the first three layers and encoder section
 		def encoder(X):
-			layer_1 = tf.nn.tanh(tf.add(tf.matmul(X, weights['encoder_h1']), bias['encoder_b1']))
-			layer_2 = tf.nn.tanh(tf.add(tf.matmul(layer_1, weights['encoder_h2']), bias['encoder_b2']))
-			layer_3 = tf.nn.tanh(tf.add(tf.matmul(layer_2, weights['encoder_h3']), bias['encoder_b3']))
+			layer_1 = tf.nn.tanh(tf.add(tf.matmul(X, weights['encoder_h1']), bias['encoder_b1']),
+			                     name="en_layer_1")
+			layer_2 = tf.nn.tanh(tf.add(tf.matmul(layer_1, weights['encoder_h2']), bias['encoder_b2']),
+			                     name="en_layer_2")
+			layer_3 = tf.nn.tanh(tf.add(tf.matmul(layer_2, weights['encoder_h3']), bias['encoder_b3']),
+			                     name="en_layer_3")
 			return layer_3
 
 		# Hyperbolic tangent activation functions and linear layer representing the last three layers and decoder section
 		def decoder(X):
-			layer_1 = tf.nn.tanh(tf.add(tf.matmul(X, weights['decoder_h1']), bias['decoder_b1']))
-			layer_2 = tf.nn.tanh(tf.add(tf.matmul(layer_1, weights['decoder_h2']), bias['decoder_b2']))
+			layer_1 = tf.nn.tanh(tf.add(tf.matmul(X, weights['decoder_h1']), bias['decoder_b1']),
+			                     name="de_layer_1")
+			layer_2 = tf.nn.tanh(tf.add(tf.matmul(layer_1, weights['decoder_h2']), bias['decoder_b2']),
+			                     name="de_layer_2")
 			# Linear Layers due to AutoEncoder being a regression task
-			layer_3 = tf.add(tf.matmul(layer_2, weights['decoder_h3']), bias['decoder_b3'])
+			layer_3 = tf.add(tf.matmul(layer_2, weights['decoder_h3']), bias['decoder_b3'],
+			                 name="de_layer_3")
 			return layer_3
 
 		data = tf.placeholder(dtype=tf.float32, shape=[None, input_features], name='data-set')
@@ -102,7 +122,7 @@ class AutoEncoder:
 		y_pred = decoder_op
 		y_true = data
 
-		loss = tf.reduce_mean(tf.pow(y_true - y_pred, 2))
+		loss = tf.reduce_mean(tf.pow(y_true - y_pred, 2), name="loss")
 		optimizer = tf.train.AdagradOptimizer(learning_rate=learning_rate).minimize(loss)
 		init = tf.global_variables_initializer()
 
@@ -114,29 +134,43 @@ class AutoEncoder:
 
 			def train(x, log=False):
 				for i in range(0, epochs):
-
 					_, self.loss = session.run([optimizer, loss], feed_dict={data: x})
 
 					if i % 100 == 0:
 						print("STEP {} LOSS {}".format(i, self.loss))
+
+						# GUI Updates at iterations
+						if labelvar is not None:
+							labelvar.set("Current Loss: {}\n"
+							             "{} Iterations Left\n"
+							             "Learning Rate: {}\n"
+							             "Threshold: {}\n"
+										 "This will take a lot of processing power!".format(self.loss, epochs - i, learning_rate, test_thresh))
+							controller.update()
+
+							if i == epochs - 1:
+								labelvar.set("Training Finished!")
+								controller.update()
+
 						if log:
 							summary_str = loggart_scaler.eval(feed_dict={data: x})
 							loggart.add_summary(summary_str, i)
 							self.org_loss = self.loss
 
 			train(self.data_set, log=True)
-			if self.test_data_set.any:
+			if test:
 				anomaly_rates = []
-				ex = open('temp/results/results_{}_{}.txt'.format(time, self.org_loss), 'w')
+				ex = open('{}/results/results_{}_{}.txt'.format(temp_dir, time, self.loss), 'w')
 				ex.write("Layer 1: {} Layer 2: {} Layer 3: {}\n "
 				         "Learning Rate {} Threshold {} Loss {}\n"
 				         "Epochs {}\n".format(layer_1_f, layer_2_f, layer_3_f,
 				                           learning_rate, test_thresh,
-				                           self.org_loss, epochs)
+				                           self.loss, epochs)
 				         )
 				ex.write("Weights {}\n".format(session.run(weights)))
 				ex.write("Bias {}\n".format(session.run(bias)))
 				ex.write("===================================\n")
+				ex.write("{\n")
 				for index, items in enumerate(self.test_data_set):
 					user_id = self.test_index[index]
 
@@ -147,18 +181,18 @@ class AutoEncoder:
 					MSE = session.run(tf.reduce_mean(tf.pow(cur_result - point, 2)))
 
 					print("Anomaly MSE {}".format(MSE))
-					if MSE >= test_thresh:
-						anomaly_rates.append([user_id, MSE, items])
-						ex.write("USER ID {}\n".format(user_id))
-						ex.write("Anomaly MSE {}\n\n".format(MSE))
-				anomaly_list = self._get_anomalies(anomaly_rates)
+					anomaly_rates.append([user_id, MSE, items])
+					ex.write("{}:".format(user_id))
+					ex.write(" {}\n\n".format(MSE))
+				ex.write("}")
+				anomaly_list = self._get_anomalies(anomaly_rates, test_thresh=test_thresh)
 				ex.close()
 			loggart.close()
 		return anomaly_list
 
 
 class KMeansSeparator:
-	"""Main class representing an abstraction of SKLearn's KMEANS algorithm
+	"""Main class representing an implementation of SKLearn's KMEANS algorithm
 	"""
 	def __init__(self, data_set, scale=False):
 		self.data_set = data_set
