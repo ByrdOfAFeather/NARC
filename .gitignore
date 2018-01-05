@@ -1,9 +1,11 @@
-Data-Processing/secrets.py
-Data-Processing/Discussions
-Data-Processing/Calculus Discussions
-Data-Processing/temp
-Data-Processing/logs
+DataProcessing/secrets.py
+DataProcessing/Discussions
+DataProcessing/Calculus Discussions
+DataProcessing/temp
+DataProcessing/temp-legacy
+DataProcessing/logs
 GUI/config
+temp
 
 *.pyc
 *.idea

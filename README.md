@@ -1,18 +1,24 @@
 <h1 align='center'>Product</h1>
 
 NARC is a cheat detection system for the Canvas LMS, made, in part, as a senior-product for Discovery High School at Newton Conover.
-It uses Canvas LMS API queries to collect data programmatically for input into
-a AutoEncoder for anomaly detection. This is then run through a KMeans clustering program
-which separates high or low preforming students from cheaters. This project is mainly
+It uses Canvas LMS API queries to collect data programmatically for input into both traditional machine learning
+systems as well as some deep-learning systems - such as the autoencoder, which helps find anomalous testing data. This project is mainly
 inspired by a massive lack in clarity and ease-of-use tools in Canvas's quiz events, which prevents
 non technology literate teachers from using Canvas to its full extent.
 
-<h1 align='center'>Steup</h1>
+<h1 align='center'>Setup</h1>
+
 
 ###### Prerequisites
 ```
 Python - 3.5.x
 ```
+
+###### Canvas Course Setup
+On your canvas course page you have to enable quiz log auditing. This allows Canvas to track page focus
+through built in Javascript, yielding valuable information about a user's activity during a test.
+
+For more information on how to do this, follow this [guide](https://community.canvaslms.com/docs/DOC-13029-4152156575)
 
 ###### Clone Repository
 ---
@@ -29,8 +35,15 @@ git checkout <branch name here>
 ---
 In the newly cloned directory, run:
 ```
-pip install -r 'requirements.txt'
+sudo pip install -r 'requirements.txt'
 ```
+Important: if you are on Windows, running this command will not install the proper
+version of numpy or all of the dependencies for scikit-learn. For both of these,
+you will need to install pre-built wheel files for
+[numpy+mkl](https://www.lfd.uci.edu/~gohlke/pythonlibs/#numpy),
+[scipy](https://www.lfd.uci.edu/~gohlke/pythonlibs/#scipy),
+and if you haven't got it already installed,
+[sklearn](https://www.lfd.uci.edu/~gohlke/pythonlibs/#scikit-learn).
 
 ###### Setup Secrets
 ---
@@ -39,20 +52,8 @@ In this file place a list of your api keys
 ```py
 keys = ['insert canvas api token here']
 ```
-
-###### Temporary File Storage
----
-Create a folder in /Data-Processing/ titled <br>
-
-/temp/
-
-Inside of that create two folders: <br>
-
-/results/ <br>
-/classification/ <br>
-
-this directory will store data when making new api calls is not needed
-and output data from the predictors classes
+If you need help getting a token, follow this [guide](https://community.canvaslms.com/docs/DOC-10806-4214724194)
+ from Canvas
 
 <h1 align='center'>Gathering Data</h1>
 
@@ -78,6 +79,7 @@ for quiz in all_module_items['Subsections']['Quizzes']:
                                     example_moudle.header))
 ```
 <h1 align='center'>Building Datasets</h1>
+
 Datasets are built in constructor classes.
 For example, using the quiz constructor, a data set can be built
 automatically without need for any additional information when given
@@ -91,6 +93,7 @@ This returns a fully functional Pandas Dataframe that can be fed into
 sci-kit learn or tensorflow algorithms.
 
 <h1 align='center'>Building Models</h1>
+
 Machine Learning Models can be constructed from the data frames built
 in the previous section. The predictor classes found in ModelTraning can be
 used as templates in making certain types of model.
@@ -114,6 +117,14 @@ ID as the index or the user name. The data will contain the original testing dat
 sci-kit learn standard scalar applied to it and the predicted cluster (by default there will
 either be 1 or 0).
 
+<h1 align='center'>Notes</h1>
+
+The inclusion of the ability in the GUI to turn off SSL Certificate checks with the requests module is done 
+so that invalid configurations of popular network security software, such as Zscaler, can still 
+use this software. This is to be done at the user’s own risk. This is a temporary solution
+while a more secure one is being developed. For more information about security
+risks and the vulnerability to "man-in-the-middle" attacks when using this mode, see [here](http://docs.python-requests.org/en/master/user/advanced/)
+
 <h1 align='center'>Related Works</h1>
 
 * Canvas LMS Discussions Data Analytics: http://ceur-ws.org/Vol-1925/paper11.pdf
@@ -121,7 +132,7 @@ either be 1 or 0).
 
 <h1 align='center'>License</h1>
 
-MIT License, See [License.md](https://github.com/ByrdOfAFeather/Senior-Product/blob/master/LICENSE) for details
+MIT License, See [License.md](https://github.com/ByrdOfAFeather/NARC/blob/master/LICENSE) for details
 
 
 

@@ -1,14 +1,13 @@
 import secrets as sc
 
 import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
-
 
 nccs_token = sc.keys[0]
 nccs_url = 'http://nccs.instructure.com'
 nccs_header = {'Authorization': 'Bearer {}'.format(nccs_token)}
-
-dev_set = sc.EuroDataSet  # Simple Canvas data set based on a AP Euro History Quiz, Built with QuizEvents
 
 
 class DataSet:
@@ -48,3 +47,32 @@ class DataSet:
 		"""Gets a correlation matrix from the current data set
 		"""
 		return self.set.corr()
+
+
+class AnomalyResults:
+	def __init__(self, input_dict):
+		"""Sets up the data set
+		should be a dict in the format {user_name || user_id: MSE}
+		"""
+		self.data_set = pd.DataFrame.from_dict(input_dict, orient='index')
+
+	def histogram(self):
+		self.data_set.hist()
+		plt.show()
+
+
+test_anomalies = {'USER 1': 4.502216768885636,
+                  'USER 2': 1.7771500797080204,
+                  'USER 3': 2.739799159023383,
+                  'USER 4': 0.8747338033623383,
+                  'USER 5': 2.66438058836371,
+                  'USER 6': 0.14456406760181123,
+                  'USER 7': 3.6566832596064853,
+                  'USER 8': 0.8951757366834237,
+                  'USER 9': 1.7346815613814464,
+                  }
+test = AnomalyResults(test_anomalies)
+test.data_set.plot()
+plt.show()
+test.histogram()
+
