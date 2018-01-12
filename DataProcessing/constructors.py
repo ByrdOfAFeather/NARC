@@ -16,7 +16,7 @@ temp_dir = r'..\.\temp/data'
 
 
 class QuizEvents:
-	"""A builder of datasets for quiz event information"""
+	"""A builder of data sets for quiz event information"""
 	def __init__(self, quiz, questions_answered=None, anon=True):
 		print("Initializing Quiz")
 		self.anon = anon  # anon = anonymous (false: index = user id & true: index = user name)
@@ -59,7 +59,7 @@ class QuizEvents:
 			# Builds a list of questions at the time they were answered
 			for answer in answers:
 				question_time = datetime.datetime(*time.strptime(answer['created_at'].replace("Z", ""),
-					                                                 "%Y-%m-%dT%H:%M:%S")[:6])
+				                                                 "%Y-%m-%dT%H:%M:%S")[:6])
 				temp_time_list.append(question_time)
 			# Checks if the time list is bigger than 1
 			# (average time between questions isn't able to be found on n <= 1 examples)
@@ -68,8 +68,8 @@ class QuizEvents:
 				# Builds a list of distances in datetime object format
 				for i in range(0, len(temp_time_list) - 1):
 					current = temp_time_list[i]
-					next = temp_time_list[i+1]
-					temp_distance_list.append(next - current)
+					after = temp_time_list[i+1]
+					temp_distance_list.append(after - current)
 
 				distance_list = []
 				# Builds a list of distances and adds to a running list of distances

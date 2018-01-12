@@ -6,15 +6,12 @@
 
 from collectors import *
 from constructors import *
-from secrets import keys, EuroDataSet, PsychDataSet
+from secrets import keys, EuroDataSet
 from ModelTraining import predictors
-import numpy as np
 
 nccs_token = keys[0]
 nccs_url = 'http://nccs.instructure.com'
 nccs_header = {'Authorization': 'Bearer {}'.format(nccs_token)}
-
-example_module = Module(url=nccs_url, header=nccs_header, class_id=9713, module_id=8957)
 
 
 def main():
@@ -31,12 +28,11 @@ def main():
 
 	test_thresh = .1
 	n_init = 500000
-	epochs = 1000000
-	learning_rate = .09
+	learning_rate = .08
 
 	# Iterates for a obscene amount of times to produce results to analyze [IGNORABLE]
 	for i in range(0, 1001):
-		test = jack_walsh.separate(learning_rate=learning_rate, epochs=epochs, test_thresh=test_thresh)  # TODO: .7 threshold test
+		test = jack_walsh.separate(learning_rate=learning_rate, test_thresh=test_thresh)
 		print(test)
 		test_file = open(r"..\.\temp/model_info/classification/classification_{}_{}.txt".format(
 																	datetime.datetime.now().strftime("%Y-%m-%d T-%H-%M-%S"),
@@ -68,6 +64,7 @@ def main():
 		results['Result'] = None
 
 		false_negative = len(results[(results['Class'] == 0) & (results['Actual'] == 1)])
+		print(results[(results['Class'] == 0) & (results['Actual'] == 1)])
 		results.loc[(results['Class'] == 0) & (results['Actual'] == 1), 'Result'] = u'❌'
 		false_positive = len(results[(results['Class'] == 1) & (results['Actual'] == 0)])
 		results.loc[(results['Class'] == 1) & (results['Actual'] == 0), 'Result'] = u'❌'
@@ -90,7 +87,7 @@ def main():
 						false_negative += 1
 
 		test_file.write("THRESHOLD FOR TESTING : {}\n".format(test_thresh))
-		test_file.write("EPOCHS : {}\n".format(epochs))
+		test_file.write("EPOCHS : {}\n".format(500000))
 		test_file.write("LEARNING RATE : {}\n".format(learning_rate))
 		test_file.write("N_INIT : {}\n".format(n_init))
 		test_file.write(u"{}".format(str(results)))

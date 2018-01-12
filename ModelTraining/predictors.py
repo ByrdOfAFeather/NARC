@@ -23,6 +23,21 @@ if not os.path.exists(r'..\.\temp/model_info/classification'):
 
 temp_dir = r'..\.\temp/model_info'
 
+# For easy access from GUI modules
+AUTOENCODER_DEFAULTS = dict(
+	learning_rate=.08,
+	layer_1_f=10,
+	layer_2_f=5,
+	layer_3_f=2,
+	epochs=500000,
+	test_thresh=.1,
+	test=True,
+	labelvar=None,
+	controller=None,
+	verbose=True
+)
+
+
 class AutoEncoder:
 	"""Main class for implementing a AutoEncoder into Tensor flow
 	"""
@@ -36,7 +51,7 @@ class AutoEncoder:
 
 	def PCA(self):
 		"""Automatically preforms a optional PCA on the input data set
-		:return: a data set scaled down using sci-kit learn's implementation of PCA
+		sets the data set to a data set scaled down using sci-kit learn's implementation of PCA
 		"""
 		self.data_set = PCA().fit_transform(X=self.data_set)
 
@@ -57,9 +72,14 @@ class AutoEncoder:
 				anomalies.append(items)
 		return anomalies
 
-	def separate(self, learning_rate=.08, layer_1_f=10, layer_2_f=5, layer_3_f=2,
-	        epochs=800000, test_thresh=.1, test=True, labelvar=None, controller=None):
+	def separate(self, learning_rate=AUTOENCODER_DEFAULTS['learning_rate'], layer_1_f=AUTOENCODER_DEFAULTS['layer_1_f'],
+	             layer_2_f=AUTOENCODER_DEFAULTS['layer_2_f'], layer_3_f=AUTOENCODER_DEFAULTS['layer_3_f'],
+	             epochs=AUTOENCODER_DEFAULTS['epochs'], test_thresh=AUTOENCODER_DEFAULTS['test_thresh'],
+	             test=AUTOENCODER_DEFAULTS['test'], labelvar=AUTOENCODER_DEFAULTS['labelvar'],
+	             controller=AUTOENCODER_DEFAULTS['controller'], verbose=AUTOENCODER_DEFAULTS['verbose']):
 		"""Separates non-anomalous data from anomalous data
+		Based of off TensorFlow AutoEncoder Example:
+		https://github.com/aymericdamien/TensorFlow-Examples/blob/master/examples/3_NeuralNetworks/autoencoder.py
 		:param learning_rate: Learning rate for Adagradoptimizer (implemented from Tensor flow)
 		:param layer_1_f: The number of neurons in the first hidden layer
 		:param layer_2_f: The number of neurons in the second hidden layer
@@ -67,6 +87,10 @@ class AutoEncoder:
 		:param epochs: The number of iterations to preform Adagradoptimization
 		:param test_thresh: The threshold by which to classify anomalies
 		:param test: If the test set should be used
+		:param labelvar: If passed, the corresponding StringVar will be
+			   constantly if a controller is provided :type:t.StringVar()
+		:param controller: if both this and labelvar are passed, a tkinter GUI object will be updated :type: tk.Tk()
+		:param verbose: if True, algorithm will output at every 100 steps, if False it will not.
 		:return: A list of anomalies (index, data)
 		"""
 		anomaly_list = []
@@ -95,8 +119,8 @@ class AutoEncoder:
 		}
 
 		# Hyperbolic tangent activation functions representing the first three layers and encoder section
-		def encoder(X):
-			layer_1 = tf.nn.tanh(tf.add(tf.matmul(X, weights['encoder_h1']), bias['encoder_b1']),
+		def encoder(x):
+			layer_1 = tf.nn.tanh(tf.add(tf.matmul(x, weights['encoder_h1']), bias['encoder_b1']),
 			                     name="en_layer_1")
 			layer_2 = tf.nn.tanh(tf.add(tf.matmul(layer_1, weights['encoder_h2']), bias['encoder_b2']),
 			                     name="en_layer_2")
@@ -105,8 +129,8 @@ class AutoEncoder:
 			return layer_3
 
 		# Hyperbolic tangent activation functions and linear layer representing the last three layers and decoder section
-		def decoder(X):
-			layer_1 = tf.nn.tanh(tf.add(tf.matmul(X, weights['decoder_h1']), bias['decoder_b1']),
+		def decoder(x):
+			layer_1 = tf.nn.tanh(tf.add(tf.matmul(x, weights['decoder_h1']), bias['decoder_b1']),
 			                     name="de_layer_1")
 			layer_2 = tf.nn.tanh(tf.add(tf.matmul(layer_1, weights['decoder_h2']), bias['decoder_b2']),
 			                     name="de_layer_2")
@@ -137,7 +161,7 @@ class AutoEncoder:
 					_, self.loss = session.run([optimizer, loss], feed_dict={data: x})
 
 					if i % 100 == 0:
-						print("STEP {} LOSS {}".format(i, self.loss))
+						if verbose: print("STEP {} LOSS {}".format(i, self.loss))
 
 						# GUI Updates at iterations
 						if labelvar is not None:
@@ -145,7 +169,8 @@ class AutoEncoder:
 							             "{} Iterations Left\n"
 							             "Learning Rate: {}\n"
 							             "Threshold: {}\n"
-										 "This will take a lot of processing power!".format(self.loss, epochs - i, learning_rate, test_thresh))
+										 "This will take a lot of processing power!".format(self.loss, epochs - i,
+							                                                                learning_rate, test_thresh))
 							controller.update()
 
 							if i == epochs - 1:
@@ -182,17 +207,18 @@ class AutoEncoder:
 
 					print("Anomaly MSE {}".format(MSE))
 					anomaly_rates.append([user_id, MSE, items])
-					ex.write("{}:".format(user_id))
-					ex.write(" {}\n\n".format(MSE))
+					ex.write("\"{}\":".format(user_id))
+					ex.write(" {},\n".format(MSE))
 				ex.write("}")
-				anomaly_list = self._get_anomalies(anomaly_rates, test_thresh=test_thresh)
+				anomaly_list = self._get_anomalies(anomaly_rates)
 				ex.close()
 			loggart.close()
 		return anomaly_list
 
 
+# noinspection PyUnresolvedReferences
 class KMeansSeparator:
-	"""Main class representing an implementation of SKLearn's KMEANS algorithm
+	"""Main class representing a implementation of SKLearn's KMeans algorithm
 	"""
 	def __init__(self, data_set, scale=False):
 		self.data_set = data_set
@@ -231,10 +257,37 @@ class KMeansSeparator:
 			indexs = data_dict.index.values
 
 			for index in range(0, len(data_dict)):
+				# TODO: Replace Euclidean distance in case of better metrics
 				cur_index = indexs[index]
 				items = data_dict.loc[cur_index]
 				point = np.reshape(items, (1, -1))
 				predict = classifier.predict(point)
+
 				results_dict.at[cur_index, 'Class'] = predict
+
+				cur_class = 0 if predict else 1
+				cur_cluster_center = classifier.cluster_centers_[cur_class]
+
+				x1 = cur_cluster_center[0]
+				y1 = cur_cluster_center[1]
+				z1 = cur_cluster_center[2]
+
+				x2 = point[0][0]
+				y2 = point[0][1]
+				z2 = point[0][2]
+
+				cur_distance = ((x1 - x2) ** 2 + (y1 - y2) ** 2 + (z1 - z2) ** 2) ** (1/2)
+				results_dict.at[cur_index, 'Opposite Distance'] = cur_distance
+
+				cur_class = 1 if predict else 0
+				cur_cluster_center = classifier.cluster_centers_[cur_class]
+
+				x1 = cur_cluster_center[0]
+				y1 = cur_cluster_center[1]
+				z1 = cur_cluster_center[2]
+
+				cur_distance = ((x1 - x2) ** 2 + (y1 - y2) ** 2 + (z1 - z2) ** 2) ** (1 / 2)
+				# noinspection PyUnresolvedReferences
+				results_dict.at[cur_index, 'Assigned Distance'] = cur_distance
 
 		return results_dict
