@@ -1,3 +1,7 @@
+`<p align="center">
+<img src='https://i.imgur.com/yKuYw0L.png'>
+</p>
+
 <h1 align='center'>Product</h1>
 
 NARC is a cheat detection system for the Canvas LMS, made, in part, as a senior-product for Discovery High School at Newton Conover.
@@ -10,11 +14,13 @@ non technology literate teachers from using Canvas to its full extent.
 
 
 ###### Prerequisites
+---
 ```
 Python - 3.5.x
 ```
 
 ###### Canvas Course Setup
+---
 On your canvas course page you have to enable quiz log auditing. This allows Canvas to track page focus
 through built in Javascript, yielding valuable information about a user's activity during a test.
 
@@ -85,7 +91,7 @@ For example, using the quiz constructor, a data set can be built
 automatically without need for any additional information when given
 a quiz class.
 
-```
+```py
 example_quiz = Quiz(class_id=class_id, quiz_id=quiz_id, url=url, header=header)
 example_quiz_data_set = example.quiz.build_dataframe()
 ```
@@ -98,7 +104,7 @@ Machine Learning Models can be constructed from the data frames built
 in the previous section. The predictor classes found in ModelTraning can be
 used as templates in making certain types of model.
 
-```
+```py
 predictor_example = AutoEncoder(example_quiz_data_set, anon=False)
 anomalies = predictor_example.seperate()
 ```
@@ -108,7 +114,7 @@ on the last hidden layer. The output of this function can then be run
 through a K-Means separator to attempt to find the cheaters from high or
 low performing student anomalies.
 
-```
+```py
 example_cluster = KMeansSeparator(anomalies)
 example_results = example_cluster.classify()
 ```

@@ -41,7 +41,7 @@ class UserCollector:
 class Collector:
 	"""Collects data from the Canvas API
 	"""
-	def __init__(self, url=None, header=None, class_id=None, verify=True):
+	def __init__(self, url, header, class_id, verify=True):
 		"""
 		:param url: The URL used for Canvas ex. http://stanford.instructure.com
 		:param header: The authorization information for the canvas API
@@ -88,7 +88,7 @@ class Collector:
 class Module(Collector):
 	"""Represents and collects data from a single module
 	"""
-	def __init__(self, module_id=None, url=None, header=None, class_id=None, verify=True):
+	def __init__(self, module_id, url, header, class_id, verify=True):
 		self.module_id = module_id
 		super(Module, self).__init__(url=url, header=header, class_id=class_id, verify=verify)
 
@@ -148,7 +148,7 @@ class Module(Collector):
 class Quiz(Collector):
 	"""Represents a single quiz
 	"""
-	def __init__(self, quiz_id, class_id=None, header=None, url=None, verify=True):
+	def __init__(self, quiz_id, class_id, header, url, verify=True):
 		self.quiz_id = quiz_id
 		super(Quiz, self).__init__(class_id=class_id, header=header, url=url, verify=verify)
 		self.submissions = self._get_quiz_submissions()
@@ -309,9 +309,9 @@ class Quiz(Collector):
 class Discussion(Collector):
 	"""Represents and collects a single canvas discussion
 	"""
-	def __init__(self, discussion_id=None):
+	def __init__(self, class_id, header, url, discussion_id):
 		self.discussion_id = discussion_id
-		super(Discussion, self).__init__()
+		super(Discussion, self).__init__(class_id, header, url)
 
 	def get_discussion(self, output_folder='Discussions', output_file_name='discussiontest.json', anonymous=False):
 		"""Returns a id/name dictionary and a name/posts dictionary
