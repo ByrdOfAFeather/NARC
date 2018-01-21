@@ -3,7 +3,6 @@ import tensorflow as tf
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 from datetime import datetime
 
@@ -49,12 +48,6 @@ class AutoEncoder:
 		self.loss = None
 		self.org_loss = None
 
-	def PCA(self):
-		"""Automatically preforms a optional PCA on the input data set
-		sets the data set to a data set scaled down using sci-kit learn's implementation of PCA
-		"""
-		self.data_set = PCA().fit_transform(X=self.data_set)
-
 	@staticmethod
 	def _get_anomalies(anomaly_rates, test_thresh=0.0):
 		"""Gets anomalies based on user threshold
@@ -62,8 +55,9 @@ class AutoEncoder:
 		:param test_thresh: by default set to the average of the anomaly rates, otherwise, user set
 		:return: list of anomalies
 		"""
-		if not test_thresh: test_thresh = sum([i[1] for i in anomaly_rates]) / len(anomaly_rates)
+		if not test_thresh: test_thresh = (sum([i[1] for i in anomaly_rates]) / len(anomaly_rates)) / 2
 		else: test_thresh = test_thresh
+
 		print("THIS IS THE TEST THRESHOLD : {}".format(test_thresh))
 		anomalies = []
 		for items in anomaly_rates:
@@ -268,25 +262,25 @@ class KMeansSeparator:
 				cur_class = 0 if predict else 1
 				cur_cluster_center = classifier.cluster_centers_[cur_class]
 
-				x1 = cur_cluster_center[0]
-				y1 = cur_cluster_center[1]
-				z1 = cur_cluster_center[2]
+				distances = []
+				for items in range(0, len(cur_cluster_center) - 1):
+					distance = cur_cluster_center[items] - point[0][items]
+					distance = distance ** 2
+					distances.append(distance)
 
-				x2 = point[0][0]
-				y2 = point[0][1]
-				z2 = point[0][2]
-
-				cur_distance = ((x1 - x2) ** 2 + (y1 - y2) ** 2 + (z1 - z2) ** 2) ** (1/2)
+				cur_distance = sum(distances) ** (1/2)
 				results_dict.at[cur_index, 'Opposite Distance'] = cur_distance
 
 				cur_class = 1 if predict else 0
 				cur_cluster_center = classifier.cluster_centers_[cur_class]
 
-				x1 = cur_cluster_center[0]
-				y1 = cur_cluster_center[1]
-				z1 = cur_cluster_center[2]
+				distances = []
+				for items in range(0, len(cur_cluster_center) - 1):
+					distance = cur_cluster_center[items] - point[0][items]
+					distance = distance ** 2
+					distances.append(distance)
 
-				cur_distance = ((x1 - x2) ** 2 + (y1 - y2) ** 2 + (z1 - z2) ** 2) ** (1 / 2)
+				cur_distance = sum(distances) ** (1/2)
 				# noinspection PyUnresolvedReferences
 				results_dict.at[cur_index, 'Assigned Distance'] = cur_distance
 

@@ -141,7 +141,6 @@ class TokenSelector(tk.Frame):
 		# These are both placeholders to take on the value of input values from token and url input objects
 		self.token = None
 		self.url = None
-		self.ssl_ticket_input = None
 
 		# Setups confirmation information that will be used to verify API information
 		self.confirmed_button = None
@@ -195,9 +194,6 @@ class TokenSelector(tk.Frame):
 		self.confirmed_button = ttk.Button(self, command=self._confirm_token, width=20, text='Confirm Information!')
 		self.confirmed_button.grid(sticky='nsew')
 
-		self.ssl_ticket_input = ttk.Entry(self)
-		self.ssl_ticket_input.grid(sticky='nsew')
-
 		self.error = ttk.Label(self, text="Sorry, either your URL or API key is incorrect!")
 
 	def set_ssl(self, _):
@@ -215,10 +211,7 @@ class TokenSelector(tk.Frame):
 		api_target = "http://{}.instructure.com/api/v1/users/activity_stream".format(cur_url)
 		headers = {'Authorization': 'Bearer {}'.format(cur_token)}
 		try:
-			if self.ssl_ticket_input.get():
-				test = requests.put(api_target, headers=headers, verify=self.ssl_ticket_input.get())
-			else:
-				test = requests.put(api_target, headers=headers, verify=self.controller.is_trusted_ssl)
+			test = requests.put(api_target, headers=headers, verify=self.controller.is_trusted_ssl)
 
 			if test.status_code == 200:
 				# If the response is positive the information is saved for storage in a token.json file

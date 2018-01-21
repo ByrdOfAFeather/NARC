@@ -17,7 +17,7 @@ temp_dir = r'..\.\temp/data'
 
 class QuizEvents:
 	"""A builder of data sets for quiz event information"""
-	def __init__(self, quiz, questions_answered=None, anon=True):
+	def __init__(self, quiz, questions_answered=None, anon=True, pre_flags=False):
 		print("Initializing Quiz")
 		self.anon = anon  # anon = anonymous (false: index = user id & true: index = user name)
 		self.data_set = {}
@@ -26,6 +26,7 @@ class QuizEvents:
 		if not questions_answered: self._get_questions_answered()
 		else: self.questions_answered = questions_answered
 
+		self.pre_flags = pre_flags
 		self._init_data_set()
 
 	def _get_questions_answered(self):
@@ -39,16 +40,55 @@ class QuizEvents:
 		"""Creates the entire data set
 		"""
 		# Dictionary key initialization
+
+		# Sets pandas options for displaying a much larger data set
+		pd.set_option('display.max_columns', 10)
+		pd.set_option('display.width', 1000)
+
 		for submit in self.submissions:
 			user_id = str(submit['user_id'])
 			self.data_set[user_id] = {}
 		self.data_set['Overall'] = {}
 
+		# self._build_changed_questions(correct_only=True)
 		self._build_average_question_time()
 		# self._build_user_scores()
 		self._build_time_taken()
 		self._build_user_page_leaves()
 		if not self.anon: self._non_anon_data_set()
+
+	def _build_changed_questions(self, correct_only=False):
+		correct_answers = self.quiz.get_correct_answers()
+		for students, answers in self.questions_answered.items():
+			changed_questions = []
+			changed_to_correct = []
+			previous_answers = {}
+			for answer in answers:
+				current_question = answer['event_data'][0]['quiz_question_id']
+				current_answer = answer['event_data'][0]['answer']
+
+				if current_question in previous_answers.keys():
+					if previous_answers[current_question] == current_answer:
+						pass
+					else:
+						changed_questions.append((students,
+						                          current_question,
+						                          current_answer))
+
+					previous_answers[current_question] = current_answer
+
+				else:
+					previous_answers[current_question] = current_answer
+
+			if correct_only:
+				for student, question, current_answer in changed_questions:
+					if int(current_answer) in correct_answers[str(student)][int(question)]:
+						changed_to_correct.append((student, question, current_answer))
+
+			if not correct_only: self.data_set[str(students)]['changed_questions'] = len(changed_questions)
+			if correct_only: self.data_set[str(students)]['changed_questions'] = len(changed_to_correct)
+
+		self.data_set['Overall']['changed_questions'] = 5
 
 	def _build_average_question_time(self):
 		"""Adds the average question time as a feature to the current data set
@@ -109,8 +149,16 @@ class QuizEvents:
 			cur_length = len(full_list)
 			all_page_leaves.append(cur_length)
 			page_leaves.append(cur_length)
-			if cur_length > 10:
-				self.data_set[user_id]['page_leaves'] = 'CA'
+
+			# Converts the dictionary keys into a list, takes the length to get the total number of questions
+			# the multiplies by .5 to get 50 percent of the total number of questions
+			if self.pre_flags:
+				questions_no_subdivision = len(list(self.quiz.get_quiz_question_ids().keys())) * .75
+				if (cur_length / 2) >= questions_no_subdivision:
+					self.data_set[user_id]['page_leaves'] = 'CA'
+				else:
+					self.data_set[user_id]['page_leaves'] = cur_length
+
 			else:
 				self.data_set[user_id]['page_leaves'] = cur_length
 
@@ -139,15 +187,15 @@ class QuizEvents:
 		"""
 		rebuild = False
 		if os.path.exists(r"{}/user_names_{}.json".format(temp_dir, self.quiz.quiz_id)):
-			print("Getting Already Made User Name List")
 			quiz_users = json.load(open(r"{}/user_names_{}.json".format(temp_dir, self.quiz.quiz_id)))
 			# Check to see if new submissions have come in
-			if len(quiz_users) < len(self.data_set):
+			if len(quiz_users['Overall']) != len(self.data_set['Overall']) or len(quiz_users) != len(self.data_set):
 				rebuild = True
 			else:
+				print("Getting Already Made User Name List")
 				# Sets pandas options for displaying a much larger data set
-				pd.set_option('display.max_columns', 10)
-				pd.set_option('display.width', 1000)
+				pd.set_option('display.max_columns', 100)
+				pd.set_option('display.width', 100000)
 
 				self.data_set = quiz_users
 
@@ -162,10 +210,6 @@ class QuizEvents:
 					name_set[profile.json()['name']] = values
 				except KeyError:
 					name_set['Overall'] = values  # Overall throws key error
-
-			# Sets pandas options for displaying a much larger data set
-			pd.set_option('display.max_columns', 10)
-			pd.set_option('display.width', 1000)
 
 			with open('{}/{}.json'.format(temp_dir, 'user_names_{}'.format(self.quiz.quiz_id)), 'w') as f:
 				json.dump(name_set, f)
@@ -214,7 +258,7 @@ class QuizEvents:
 			print("It appears there was an ID error, \nAvailable IDs are {}".format(self.data_set.keys()))
 			return None
 
-	def build_dataframe(self, pre_flagged=False):
+	def build_dataframe(self):
 		"""Builds a dataframe based on the current data set
 		:return: Pandas dataframe containing input data
 		"""
@@ -227,9 +271,14 @@ class QuizEvents:
 		del data_set_copy
 
 		data_frame = pd.DataFrame.from_dict(data_set, orient='index')
-		pre_flags = data_frame.loc[data_frame['page_leaves'] == 'CA']
-		data_frame.drop(data_frame.loc[data_frame['page_leaves'] == 'CA'].index.values, inplace=True)
-		if pre_flagged:
+
+		if self.pre_flags:
+			pre_flags = data_frame.loc[data_frame['page_leaves'] == 'CA']
+			data_frame.drop(data_frame.loc[data_frame['page_leaves'] == 'CA'].index.values, inplace=True)
 			return pre_flags, data_frame
 		else:
 			return data_frame
+
+
+# if risk > everything:
+# 	program.work()

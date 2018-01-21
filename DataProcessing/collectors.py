@@ -153,7 +153,7 @@ class Quiz(Collector):
 		super(Quiz, self).__init__(class_id=class_id, header=header, url=url, verify=verify)
 		self.submissions = self._get_quiz_submissions()
 
-	def _get_quiz_question_ids(self):
+	def get_quiz_question_ids(self):
 		"""Builds a dictionary of questions linked to their respective ids
 		:return: dictionary {question: question_text, question order, question answers}
 		"""
@@ -223,7 +223,7 @@ class Quiz(Collector):
 
 		# Builds a list of event_type = question_answered
 		questions_answered_dict = {}
-		key_list = self._get_quiz_question_ids()
+		key_list = self.get_quiz_question_ids()
 		for user_id, event_dict in event_dict.items():
 			current_questions_answered = []
 
@@ -247,6 +247,25 @@ class Quiz(Collector):
 			json.dump(questions_answered_dict, f)
 
 		return questions_answered_dict
+
+	def get_correct_answers(self):
+		"""
+		TODO: Finish Implementation
+		:return:
+		"""
+		event_dict = self.get_quiz_events()
+		user_specific_correct_answer_dict = {}
+		cur_correct_answer_dict = {}
+		for students, event_dict in event_dict.items():
+
+			cur_quiz_data = list(event_dict.values())[0][0]['event_data']['quiz_data']
+
+			for questions in cur_quiz_data:
+				cur_correct_answer_dict[questions["id"]] = [i["id"] for i in questions["answers"] if i["weight"] > 0]
+
+			user_specific_correct_answer_dict[students] = cur_correct_answer_dict
+
+		return user_specific_correct_answer_dict
 
 	def get_page_leaves(self):
 		"""
