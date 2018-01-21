@@ -39,6 +39,11 @@ class DevSettingsMenu(tk.Frame):
 		"""Sets up input for hyper parameters and their default values, along with a warning
 		"""
 		# Styles label to make it look red and menacing
+
+		for widget in self.winfo_children():
+			widget.pack_forget()
+			widget.destroy()
+
 		style = ttk.Style()
 		style.configure('R.TLabel', foreground='red')
 		overall_label = ttk.Label(self, text="WARNING THESE ARE DEVELOPER FEATURES, IF YOU DON'T KNOW WHAT THESE DO, "
@@ -138,15 +143,18 @@ class AutoEncoderSettingsMenu(tk.Frame):
 
 		self.params = None
 
+		self.built_data_set = False
+
 	def build_data_set(self):
 		"""Builds data set
 		Sets up the pre_flags which are cheaters pre separated based on unreasonable values in page_leaves
 		"""
 		self.quiz = self.controller.cur_quiz
-		self.quiz_constructor = constructors.QuizEvents(self.quiz, anon=False)
-		data_sets = self.quiz_constructor.build_dataframe(pre_flagged=True)
+		self.quiz_constructor = constructors.QuizEvents(self.quiz, anon=False, pre_flags=True)
+		data_sets = self.quiz_constructor.build_dataframe()
 		self.pre_flags = data_sets[0]
 		self.data_set = data_sets[1]
+		self.built_data_set = True
 
 	def init_gui(self, **kwargs):
 		"""Initializes GUI for Tensorflow start menu
@@ -160,17 +168,20 @@ class AutoEncoderSettingsMenu(tk.Frame):
 			widget.destroy()
 
 		self.labelvar = tk.StringVar(self)
-		# TODO: Settings for data set
-		self.labelvar.set("Building Data Set!")
-
 		label = ttk.Label(self, textvar=self.labelvar)
 		label.grid(sticky='nsew')
 
-		self.controller.update()
+		# TODO: Settings for data set
+		if not self.built_data_set:
+			self.labelvar.set("Building Data Set!")
 
-		self.build_data_set()
+			self.controller.update()
 
-		self.labelvar.set("Data Set Built!")
+			self.build_data_set()
+		else:
+			self.labelvar.set("Data Set Built!")
+			print(self.data_set)
+			print(self.pre_flags)
 
 		# Opens dev settings menu if Ctrl + F12 is pressed
 		self.controller.bind('<Control-F12>', lambda _: self.controller.change_frame('DevSettingsMenu'))
@@ -189,6 +200,8 @@ class AutoEncoderSettingsMenu(tk.Frame):
 		positive for cheating.
 
 		"""
+		self.built_data_set = False
+
 		# Resets the start button if it already exists (Returning from DevSettings Menu or by Selecting Another Quiz)
 		self.start_button.grid_forget()
 		self.start_button.destroy()
@@ -200,7 +213,6 @@ class AutoEncoderSettingsMenu(tk.Frame):
 		self.labelvar.set("Starting AutoEncoder!")
 		self.controller.update()
 		jack_walsh = predictors.AutoEncoder(self.data_set, self.data_set)
-		jack_walsh.PCA()
 
 		if self.params:
 			# if parameters are passed when called the function, pass them into separate
@@ -221,7 +233,7 @@ class AutoEncoderSettingsMenu(tk.Frame):
 		results = omega.classify(clusters=2, n_init=50000)
 
 		# outputs the cheaters
-		self.labelvar.set("Here's what I think possibly might maybe 50/50 could be the list of cheaters/non-cheaters")
+		self.labelvar.set("DO NOT TAKE AT FACE VALUE")
 		self.display_outputs(results)
 
 	def display_outputs(self, results):  # Gets the index values of specific classes
@@ -273,8 +285,9 @@ class AutoEncoderSettingsMenu(tk.Frame):
 		list_of_labels = []
 		# Builds labels for the participants, if they don't appear in the results index, they are labeled as
 		# non-anomalous students, therefore, they are classified as non-cheaters.
+		print(results)
 		for items in iterable_index:
-			if items not in results.index.values:
+			if items not in results.index.values or str(results.loc[items, 'Cheat']) == 'nan':
 				list_of_labels.append(tk.Label(self, text=items + '\n' + u'❌'))
 			else:
 				if str(results.loc[items, 'Opposite Distance']) == 'nan':
@@ -284,8 +297,9 @@ class AutoEncoderSettingsMenu(tk.Frame):
 				else:
 					list_of_labels.append(tk.Label(self, text="{}\n{}\n{}".format(
 						items, results.loc[items, 'Cheat'],
-						"CONFIDENCE INTERVAL: {}".format(
-							round((results.loc[items, 'Opposite Distance'] / results.loc[items, 'Assigned Distance']), 2)
+						"OD: {}\nADL {}".format(
+							round(results.loc[items, 'Opposite Distance'], 2),
+							round(results.loc[items, 'Assigned Distance'], 2)
 						)
 					)))
 
