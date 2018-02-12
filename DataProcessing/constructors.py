@@ -53,9 +53,29 @@ class QuizEvents:
 		# self._build_changed_questions(correct_only=True)
 		self._build_average_question_time()
 		# self._build_user_scores()
+		self._build_difficulty_index()
 		self._build_time_taken()
 		self._build_user_page_leaves()
 		if not self.anon: self._non_anon_data_set()
+
+	def _build_difficulty_index(self):
+
+		api_target = '{}/api/v1/courses/{}/quizzes/{}/statistics?per_page=10000'
+		question_stats = requests.put(api_target.format(self.quiz.url, self.quiz.class_id, self.quiz.quiz_id),
+		                              headers=self.quiz.header)
+
+		correct_answers = self.quiz.get_correct_answers()
+
+		for students, answers in self.questions_answered.items():
+			self.data_set[str(students)]['difficulty_index'] = 0
+
+			current_correct_answers = correct_answers[students]
+			for correct_questions in current_correct_answers:
+				for question in question_stats.json()['quiz_statistics'][0]['question_statistics']:
+					if int(question['id']) == correct_questions:
+						self.data_set[str(students)]['difficulty_index'] += question['difficulty_index']
+
+		self.data_set['Overall']['difficulty_index'] = 0
 
 	def _build_changed_questions(self, correct_only=False):
 		correct_answers = self.quiz.get_correct_answers()
@@ -153,14 +173,14 @@ class QuizEvents:
 			# Converts the dictionary keys into a list, takes the length to get the total number of questions
 			# the multiplies by .5 to get 50 percent of the total number of questions
 			if self.pre_flags:
-				questions_no_subdivision = len(list(self.quiz.get_quiz_question_ids().keys())) * .75
-				if (cur_length / 2) >= questions_no_subdivision:
+				questions_no_subdivision = len(list(self.quiz.get_quiz_question_ids().keys())) * .70
+				if cur_length >= questions_no_subdivision:
 					self.data_set[user_id]['page_leaves'] = 'CA'
 				else:
-					self.data_set[user_id]['page_leaves'] = cur_length
+					self.data_set[user_id]['page_leaves'] = cur_length ** 2
 
 			else:
-				self.data_set[user_id]['page_leaves'] = cur_length
+				self.data_set[user_id]['page_leaves'] = cur_length ** 2
 
 		average_page_leaves = round(sum(all_page_leaves) / len(all_page_leaves), 2)
 		self.data_set['Overall']['page_leaves'] = average_page_leaves
@@ -278,7 +298,3 @@ class QuizEvents:
 			return pre_flags, data_frame
 		else:
 			return data_frame
-
-
-# if risk > everything:
-# 	program.work()

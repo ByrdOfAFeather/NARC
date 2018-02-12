@@ -139,6 +139,3 @@ risks and the vulnerability to "man-in-the-middle" attacks when using this mode,
 <h1 align='center'>License</h1>
 
 MIT License, See [License.md](https://github.com/ByrdOfAFeather/NARC/blob/master/LICENSE) for details
-
-
-

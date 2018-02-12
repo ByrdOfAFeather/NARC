@@ -5,6 +5,7 @@ import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 from datetime import datetime
+import matplotlib.pyplot as plt
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
@@ -25,9 +26,9 @@ temp_dir = r'..\.\temp/model_info'
 # For easy access from GUI modules
 AUTOENCODER_DEFAULTS = dict(
 	learning_rate=.08,
-	layer_1_f=10,
-	layer_2_f=5,
-	layer_3_f=2,
+	layer_1_f=10,  # 10
+	layer_2_f=5,  # 5
+	layer_3_f=2,  # 2
 	epochs=500000,
 	test_thresh=.1,
 	test=True,
@@ -55,11 +56,41 @@ class AutoEncoder:
 		:param test_thresh: by default set to the average of the anomaly rates, otherwise, user set
 		:return: list of anomalies
 		"""
-		if not test_thresh: test_thresh = (sum([i[1] for i in anomaly_rates]) / len(anomaly_rates)) / 2
+		if not test_thresh:
+			odd_or_even = 1 if len(anomaly_rates) % 2 else 0
+			if odd_or_even:
+				index = int((len(anomaly_rates) + 1) / 2)
+				median = anomaly_rates[index][1]
+			else:
+				index1 = int((len(anomaly_rates) / 2) + 1)
+				index2 = int(len(anomaly_rates) / 2)
+				median = (anomaly_rates[index1][1] + anomaly_rates[index2][1]) / 2
+			test_thresh = (sum([i[1] for i in anomaly_rates]) / len(anomaly_rates))
 		else: test_thresh = test_thresh
 
 		print("THIS IS THE TEST THRESHOLD : {}".format(test_thresh))
 		anomalies = []
+		median *= (10 ** 300)
+		items = [i[1] * (10 ** 300) for i in anomaly_rates]
+
+		lister = []
+		for i in range(0, len(anomaly_rates)):
+			lister.append(median)
+
+		lister2 = []
+		for i in range(0, len(anomaly_rates)):
+			lister2.append((sum([i[1] for i in anomaly_rates]) / len(anomaly_rates)) * (10 ** 300))
+
+		plt.scatter(range(0, len(anomaly_rates)), items, color='r', label='Error')
+		plt.plot(range(0, len(anomaly_rates)), lister, color='b', linestyle='dashed', linewidth=2, label='Median')
+		plt.plot(range(0, len(anomaly_rates)), lister2, color='g', linestyle='dashed', linewidth=2, label='Mean')
+		plt.title("Error with mean and median thresholds")
+		plt.xlabel("Examples")
+		plt.ylabel("Error (in 10^300)")
+		plt.legend()
+		plt.show()
+
+		test_thresh = 0
 		for items in anomaly_rates:
 			if items[1] >= test_thresh:
 				del items[1]  # Gets rid of the error to output the data with the index and original data
@@ -111,6 +142,19 @@ class AutoEncoder:
 			'decoder_b2': tf.Variable(tf.zeros([layer_1_f]), name="decoder_b2"),
 			'decoder_b3': tf.Variable(tf.zeros([input_features]), name="decoder_b3")
 		}
+		# weights = {
+		# 	'encoder_h1': tf.Variable(tf.random_normal([input_features, layer_1_f]), name="encoder_h1"),
+		# 	'encoder_h2': tf.Variable(tf.random_normal([layer_1_f, layer_2_f]), name="encoder_h2"),
+		# 	'decoder_h1': tf.Variable(tf.random_normal([layer_2_f, layer_1_f]), name="decoder_h1"),
+		# 	'decoder_h2': tf.Variable(tf.random_normal([layer_1_f, input_features]), name="decoder_h2")
+		# }
+		#
+		# bias = {
+		# 	'encoder_b1': tf.Variable(tf.zeros([layer_1_f]), name="encoder_b1"),
+		# 	'encoder_b2': tf.Variable(tf.zeros([layer_2_f]), name="encoder_b2"),
+		# 	'decoder_b1': tf.Variable(tf.zeros([layer_1_f]), name="decoder_b1"),
+		# 	'decoder_b2': tf.Variable(tf.zeros([input_features]), name="decoder_b2"),
+		# }
 
 		# Hyperbolic tangent activation functions representing the first three layers and encoder section
 		def encoder(x):
@@ -118,8 +162,10 @@ class AutoEncoder:
 			                     name="en_layer_1")
 			layer_2 = tf.nn.tanh(tf.add(tf.matmul(layer_1, weights['encoder_h2']), bias['encoder_b2']),
 			                     name="en_layer_2")
+
 			layer_3 = tf.nn.tanh(tf.add(tf.matmul(layer_2, weights['encoder_h3']), bias['encoder_b3']),
 			                     name="en_layer_3")
+
 			return layer_3
 
 		# Hyperbolic tangent activation functions and linear layer representing the last three layers and decoder section
@@ -128,9 +174,11 @@ class AutoEncoder:
 			                     name="de_layer_1")
 			layer_2 = tf.nn.tanh(tf.add(tf.matmul(layer_1, weights['decoder_h2']), bias['decoder_b2']),
 			                     name="de_layer_2")
+
 			# Linear Layers due to AutoEncoder being a regression task
 			layer_3 = tf.add(tf.matmul(layer_2, weights['decoder_h3']), bias['decoder_b3'],
 			                 name="de_layer_3")
+
 			return layer_3
 
 		data = tf.placeholder(dtype=tf.float32, shape=[None, input_features], name='data-set')
@@ -250,6 +298,7 @@ class KMeansSeparator:
 			classifier.fit_transform(data_dict)
 			indexs = data_dict.index.values
 
+			op_distance = []
 			for index in range(0, len(data_dict)):
 				# TODO: Replace Euclidean distance in case of better metrics
 				cur_index = indexs[index]
@@ -269,6 +318,8 @@ class KMeansSeparator:
 					distances.append(distance)
 
 				cur_distance = sum(distances) ** (1/2)
+				op_distance.append(cur_distance)
+
 				results_dict.at[cur_index, 'Opposite Distance'] = cur_distance
 
 				cur_class = 1 if predict else 0
@@ -281,7 +332,9 @@ class KMeansSeparator:
 					distances.append(distance)
 
 				cur_distance = sum(distances) ** (1/2)
-				# noinspection PyUnresolvedReferences
 				results_dict.at[cur_index, 'Assigned Distance'] = cur_distance
+
+			if sum(op_distance) <= 1:
+				results_dict['Class'] = 0
 
 		return results_dict

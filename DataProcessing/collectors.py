@@ -255,15 +255,26 @@ class Quiz(Collector):
 		"""
 		event_dict = self.get_quiz_events()
 		user_specific_correct_answer_dict = {}
-		cur_correct_answer_dict = {}
+		questions_answered = self.get_questions_answered()
+
 		for students, event_dict in event_dict.items():
+			cur_correct_answer_dict = {}
+			student_dict = {}
 
 			cur_quiz_data = list(event_dict.values())[0][0]['event_data']['quiz_data']
 
 			for questions in cur_quiz_data:
 				cur_correct_answer_dict[questions["id"]] = [i["id"] for i in questions["answers"] if i["weight"] > 0]
 
-			user_specific_correct_answer_dict[students] = cur_correct_answer_dict
+			cur_questions_answered = questions_answered[students]
+			correct_questions = cur_correct_answer_dict.keys()
+			for questions in cur_questions_answered:
+				for ids in correct_questions:
+					if ids == int(questions['event_data'][0]['quiz_question_id']):
+						if cur_correct_answer_dict[ids][0] == int(questions['event_data'][0]['answer']):
+							student_dict[ids] = cur_correct_answer_dict[ids]
+
+			user_specific_correct_answer_dict[students] = student_dict
 
 		return user_specific_correct_answer_dict
 
@@ -288,7 +299,7 @@ class Quiz(Collector):
 
 			current_list = []
 			for items in event_dict['quiz_submission_events']:
-				if items['event_type'] == 'page_blurred' or items['event_type'] == 'page_focused':
+				if items['event_type'] == 'page_blurred':
 					current_list.append(items)
 
 			page_leaves_dict[user_id] = current_list

@@ -139,7 +139,10 @@ class AutoEncoderSettingsMenu(tk.Frame):
 		self.data_set = None
 		self.pre_flags = None
 		self.labelvar = None
+
 		self.start_button = None
+		self.view_data_button = None
+		self.data_window = None
 
 		self.params = None
 
@@ -150,7 +153,7 @@ class AutoEncoderSettingsMenu(tk.Frame):
 		Sets up the pre_flags which are cheaters pre separated based on unreasonable values in page_leaves
 		"""
 		self.quiz = self.controller.cur_quiz
-		self.quiz_constructor = constructors.QuizEvents(self.quiz, anon=False, pre_flags=True)
+		self.quiz_constructor = constructors.QuizEvents(self.quiz, anon=False, pre_flags=True, labelvar=self.labelvar, controller=self.controller)
 		data_sets = self.quiz_constructor.build_dataframe()
 		self.pre_flags = data_sets[0]
 		self.data_set = data_sets[1]
@@ -178,6 +181,7 @@ class AutoEncoderSettingsMenu(tk.Frame):
 			self.controller.update()
 
 			self.build_data_set()
+
 		else:
 			self.labelvar.set("Data Set Built!")
 			print(self.data_set)
@@ -186,8 +190,34 @@ class AutoEncoderSettingsMenu(tk.Frame):
 		# Opens dev settings menu if Ctrl + F12 is pressed
 		self.controller.bind('<Control-F12>', lambda _: self.controller.change_frame('DevSettingsMenu'))
 
-		self.start_button = ttk.Button(self, text="Start Separation Process!", command=self.start_autoencoder)
+		self.start_button = ttk.Button(self, text="Compute!", command=self.start_autoencoder)
 		self.start_button.grid(sticky='nsew')
+
+		self.view_data_button = ttk.Button(self, text="View Data!", command=self.open_data_window)
+		self.view_data_button.grid(sticky='nsew')
+
+	def open_data_window(self):
+		"""Displays the current data set in a new window, with data summaries"""
+		self.view_data_button.grid_forget()
+		self.view_data_button.destroy()
+
+		self.data_window = tk.Toplevel()
+		c = 0
+		for cols in self.data_set.columns.values:
+			c += 1
+			col_label = ttk.Label(self.data_window, text="{} ".format(cols))
+			col_label.grid(row=0, column=c)
+
+		i, j = 0, 0
+		for index in self.data_set.index.values:
+			i += 1
+			j = 0
+			cur_index_label = ttk.Label(self.data_window, text="{}".format(index))
+			cur_index_label.grid(row=i, column=0)
+			for values in self.data_set.loc[index]:
+				j += 1
+				cur_value_label = ttk.Label(self.data_window, text='{}'.format(values))
+				cur_value_label.grid(row=i, column=j)
 
 	def start_autoencoder(self):
 		"""Starts the process of separating the data through a autoencoder.
@@ -198,7 +228,6 @@ class AutoEncoderSettingsMenu(tk.Frame):
 		as cheaters. They are found by comparing the index of the original data_set that is fed into the autoencoder and
 		the index of the pre_flag. If a item is in pre_flag but not in the original data_set, then it is labeled as a
 		positive for cheating.
-
 		"""
 		self.built_data_set = False
 
@@ -233,7 +262,7 @@ class AutoEncoderSettingsMenu(tk.Frame):
 		results = omega.classify(clusters=2, n_init=50000)
 
 		# outputs the cheaters
-		self.labelvar.set("DO NOT TAKE AT FACE VALUE")
+		self.labelvar.set("Here's what I think possibly might maybe 50/50 could be the list of cheaters/non-cheaters")
 		self.display_outputs(results)
 
 	def display_outputs(self, results):  # Gets the index values of specific classes
@@ -285,17 +314,16 @@ class AutoEncoderSettingsMenu(tk.Frame):
 		list_of_labels = []
 		# Builds labels for the participants, if they don't appear in the results index, they are labeled as
 		# non-anomalous students, therefore, they are classified as non-cheaters.
-		print(results)
 		for items in iterable_index:
 			if items not in results.index.values or str(results.loc[items, 'Cheat']) == 'nan':
-				list_of_labels.append(tk.Label(self, text=items + '\n' + u'❌'))
+				list_of_labels.append(tk.Label(self, text='{}\n{}'.format(items, u'❌')))
 			else:
 				if str(results.loc[items, 'Opposite Distance']) == 'nan':
 					list_of_labels.append(tk.Label(self, text="{}\n{}".format(
 						items, results.loc[items, 'Cheat'])))
 
 				else:
-					list_of_labels.append(tk.Label(self, text="{}\n{}\n{}".format(
+					list_of_labels.append(tk.Label(self, text="{}\n{}\n{}" .format(
 						items, results.loc[items, 'Cheat'],
 						"OD: {}\nADL {}".format(
 							round(results.loc[items, 'Opposite Distance'], 2),
@@ -303,14 +331,22 @@ class AutoEncoderSettingsMenu(tk.Frame):
 						)
 					)))
 
-		# Grids labels
-		for items in list_of_labels:
-			items.grid()
+			# Grids labels
+			i = -1
+			row_index = 0
+			for labels in list_of_labels:
+				i += 1
+
+				if i % 5 == 0:
+					row_index += 1
+					i = 0
+
+				labels.config(font=("Courier", 9))
+				labels.grid(row=row_index, column=i)
 
 		# Sets a back button to return and select another quiz
 		temp_back_button = ttk.Button(self, text="Select Another Quiz",
 		                             command=lambda: self.controller.change_frame('MainMenu'))
 		temp_back_button.grid()
 
-
-
+# TODO: Make Only Names Hyperlinks and make them look like they were able to be clicked

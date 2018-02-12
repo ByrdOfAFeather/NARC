@@ -59,7 +59,7 @@ class MainBackEnd(tk.Tk):
 		container = tk.Frame(self)
 
 		# Formats the container frame
-		container.grid(sticky='nsew')
+		container.pack(side='top', fill='both', expand=True)
 
 		# Builds a dictionary linking {frame_name: frame_object_reference}
 		self.frames = {}
