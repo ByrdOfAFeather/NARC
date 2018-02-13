@@ -186,55 +186,73 @@ class AutoEncoderSettingsMenu(tk.Frame):
 		# Opens dev settings menu if Ctrl + F12 is pressed
 		self.controller.bind('<Control-F12>', lambda _: self.controller.change_frame('DevSettingsMenu'))
 
-		self.start_button = ttk.Button(self, text="Start Separation Process!", command=self.start_autoencoder)
+		self.start_button = ttk.Button(self, text="Start Separation Process!", command=self.start_separator)
 		self.start_button.grid(sticky='nsew')
 
+	# def start_autoencoder(self):
+	# 	"""Starts the process of separating the data through a autoencoder.
+	#
+	# 	This function relies on the automatically separated cheaters from the data-set. These cheaters are people
+	# 	who have a extremely high number of page leaves when the data set is built. The are separated into the pre-flags
+	# 	dataframe, which contains their index and information. These are then added back into the menu, already flagged
+	# 	as cheaters. They are found by comparing the index of the original data_set that is fed into the autoencoder and
+	# 	the index of the pre_flag. If a item is in pre_flag but not in the original data_set, then it is labeled as a
+	# 	positive for cheating.
+	#
+	# 	"""
+	# 	self.built_data_set = False
+	#
+	# 	# Resets the start button if it already exists (Returning from DevSettings Menu or by Selecting Another Quiz)
+	# 	self.start_button.grid_forget()
+	# 	self.start_button.destroy()
+	#
+	# 	# Sets a default value for the temp_back_button
+	# 	temp_back_button = None
+	#
+	# 	# Creates a auto encoder object
+	# 	self.labelvar.set("Starting AutoEncoder!")
+	# 	self.controller.update()
+	# 	jack_walsh = predictors.AutoEncoder(self.data_set, self.data_set)
+	#
+	# 	if self.params:
+	# 		# if parameters are passed when called the function, pass them into separate
+	# 		output = jack_walsh.separate(labelvar=self.labelvar, controller=self.controller, **self.params)
+	# 	else:
+	# 		# otherwise, use the default function
+	# 		output = jack_walsh.separate(labelvar=self.labelvar, controller=self.controller)
+	#
+	# 	# Reset the temp_back_button
+	# 	if temp_back_button is not None:
+	# 		temp_back_button.pack_forget()
+	# 		temp_back_button.destroy()
+	#
+	# 	# Starts the clustering algorithm (won't start until the separation finishes)
+	# 	self.labelvar.set("Starting Clustering Algorithm!")
+	# 	self.controller.update()
+	# 	omega = predictors.KMeansSeparator(output)
+	# 	results = omega.classify(clusters=2, n_init=50000)
+	#
+	# 	# outputs the cheaters
+	# 	self.labelvar.set("DO NOT TAKE AT FACE VALUE")
+	# 	self.display_outputs(results)
+
+	def start_separator(self):
+		if self.controller.separation_type == 'Auto Encoder':
+			self.start_autoencoder()
+		elif self.controller.separation_type == 'Basic Anomaly':
+			self.start_basic_anomaly()
+		elif self.controller.separation_type == 'No Exception':
+			self.start_no_exception()
+
 	def start_autoencoder(self):
-		"""Starts the process of separating the data through a autoencoder.
+		pass
 
-		This function relies on the automatically separated cheaters from the data-set. These cheaters are people
-		who have a extremely high number of page leaves when the data set is built. The are separated into the pre-flags
-		dataframe, which contains their index and information. These are then added back into the menu, already flagged
-		as cheaters. They are found by comparing the index of the original data_set that is fed into the autoencoder and
-		the index of the pre_flag. If a item is in pre_flag but not in the original data_set, then it is labeled as a
-		positive for cheating.
+	def start_basic_anomaly(self):
+		jack_walsh = predictors.OneClassSVMSeperator(self.data_set)
+		jack_walsh.run()
 
-		"""
-		self.built_data_set = False
-
-		# Resets the start button if it already exists (Returning from DevSettings Menu or by Selecting Another Quiz)
-		self.start_button.grid_forget()
-		self.start_button.destroy()
-
-		# Sets a default value for the temp_back_button
-		temp_back_button = None
-
-		# Creates a auto encoder object
-		self.labelvar.set("Starting AutoEncoder!")
-		self.controller.update()
-		jack_walsh = predictors.AutoEncoder(self.data_set, self.data_set)
-
-		if self.params:
-			# if parameters are passed when called the function, pass them into separate
-			output = jack_walsh.separate(labelvar=self.labelvar, controller=self.controller, **self.params)
-		else:
-			# otherwise, use the default function
-			output = jack_walsh.separate(labelvar=self.labelvar, controller=self.controller)
-
-		# Reset the temp_back_button
-		if temp_back_button is not None:
-			temp_back_button.pack_forget()
-			temp_back_button.destroy()
-
-		# Starts the clustering algorithm (won't start until the separation finishes)
-		self.labelvar.set("Starting Clustering Algorithm!")
-		self.controller.update()
-		omega = predictors.KMeansSeparator(output)
-		results = omega.classify(clusters=2, n_init=50000)
-
-		# outputs the cheaters
-		self.labelvar.set("DO NOT TAKE AT FACE VALUE")
-		self.display_outputs(results)
+	def start_no_exception(self):
+		pass
 
 	def display_outputs(self, results):  # Gets the index values of specific classes
 		"""Sets up the display with outputs from the KMeansSeparator function

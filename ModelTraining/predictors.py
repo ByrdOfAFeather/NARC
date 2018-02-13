@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
+from sklearn.svm import OneClassSVM
 from datetime import datetime
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -210,7 +211,6 @@ class AutoEncoder:
 		return anomaly_list
 
 
-# noinspection PyUnresolvedReferences
 class KMeansSeparator:
 	"""Main class representing a implementation of SKLearn's KMeans algorithm
 	"""
@@ -281,7 +281,48 @@ class KMeansSeparator:
 					distances.append(distance)
 
 				cur_distance = sum(distances) ** (1/2)
-				# noinspection PyUnresolvedReferences
+
 				results_dict.at[cur_index, 'Assigned Distance'] = cur_distance
 
 		return results_dict
+
+
+class OneClassSVMSeperator(OneClassSVM):
+	"""Class representing a implementation of SKLearn's one class support vector machine
+	"""
+	def __init__(self, data_set, **kwargs):
+		"""Initializes the object with a scaled data set and fit_transform functions
+		:param data_set: The data set to find anomalies from
+		:param kwargs: Normal arguments from sklearn's OneClassSVM
+			   *see http://scikit-learn.org/stable/modules/generated/sklearn.svm.OneClassSVM.html
+		"""
+		OneClassSVM.__init__(self, **kwargs)
+		self.original_data_set = data_set
+		self.scaler = StandardScaler().fit(self.original_data_set)
+		self.scaled_data_set = self.scaler.transform(self.original_data_set)
+
+		self.initial_anomaly_labels = None
+		self.anomaly_user_list = []
+
+	def run(self):
+		"""Starts the separation process"""
+		self.fit(self.scaled_data_set)
+		self._initial_separation()
+		self._secondary_separation()
+
+	def _initial_separation(self):
+		"""Initially finds the anomalies"""
+		self.initial_anomaly_labels = self.predict(self.scaled_data_set)
+		for index, labels in enumerate(self.initial_anomaly_labels):
+			if labels == -1:
+				self.anomaly_user_list.append(self.original_data_set.index.values[index])
+
+	def _secondary_separation(self):
+		org_anomaly_data_set = self.original_data_set.loc[self.anomaly_user_list]
+		print(org_anomaly_data_set.index.values)
+		scaled_anomaly_data_set = self.scaler.transform(org_anomaly_data_set)
+		self.fit(scaled_anomaly_data_set)
+		anomaly_predictions = self.predict(scaled_anomaly_data_set)
+		for index, pred in enumerate(anomaly_predictions):
+			if pred == 1:
+				print(org_anomaly_data_set.index.values[index])

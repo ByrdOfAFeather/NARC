@@ -55,6 +55,11 @@ class MainBackEnd(tk.Tk):
 		self.headers = None
 		self.is_trusted_ssl = True
 
+		# Sets up the default type of separation {AutoEncoder = Autoencoder and KMeans, Anomaly = OneClassSVM,
+		# No Exception = Always if page leaves > 1}
+		self.separation_options = ['Auto Encoder', 'Basic Anomaly', 'No Exception']
+		self.separation_type = self.separation_options[0]
+
 		# Sets up the container frame which will serve as a important piece of related classes
 		container = tk.Frame(self)
 
@@ -63,7 +68,8 @@ class MainBackEnd(tk.Tk):
 
 		# Builds a dictionary linking {frame_name: frame_object_reference}
 		self.frames = {}
-		for frames in (EULAMenu, TokenSelector, MainMenu, tfd.DevSettingsMenu, tfd.AutoEncoderSettingsMenu):
+		for frames in (EULAMenu, TokenSelector, MainMenu, tfd.DevSettingsMenu, tfd.AutoEncoderSettingsMenu,
+		               SettingsMenu):
 			cur_frame = frames(container, self)
 			self.frames[frames.__name__] = cur_frame
 			cur_frame.grid(sticky='nsew')
@@ -111,131 +117,6 @@ class MainBackEnd(tk.Tk):
 		self.is_trusted_ssl = token['trusted_ssl']
 
 
-class TokenSelector(tk.Frame):
-	"""Allows the user to setup Canvas API information and store it in a .json format in the temp/data folder
-	"""
-	def __init__(self, parent, controller):
-		"""Simple __init__ function to call the parent init and setup default values
-
-		The values have to exist during the first call to these classes in the backend class values are unable to be
-		filled due to the uncertain condition of self.controller.token or self.controller.url
-
-		:param parent: The parent containing the child frame, this is set to the MainBackEnd's self.container
-					   :type: tk.Frame()
-		:param controller: The tkinter root that is able to add and refresh the GUI
-					   :type: tk.Tk()
-		"""
-		tk.Frame.__init__(self, parent)
-
-		self.parent = parent
-		self.controller = controller
-
-		# Both of these are reclassified later as tk.Entry() objects to allow for users to input Canvas API information
-		self.token_input = None
-		self.url_input = None
-
-		self.ssl_trusted_variable = None
-		self.ssl_trusted_drop_down = None
-		self.ssl_options = None
-
-		# These are both placeholders to take on the value of input values from token and url input objects
-		self.token = None
-		self.url = None
-
-		# Setups confirmation information that will be used to verify API information
-		self.confirmed_button = None
-
-		self.error = None
-		self.default = [True, True]
-
-	def delete_default(self, event):
-		"""Changes the default text to nothing or resets it if nothing has been put in
-		:param event: Tkinter GUI event
-		:return: None
-		"""
-		if event.widget == self.url_input:
-			if self.default[0]:
-				event.widget.delete(0, "end")
-				self.default[0] = False
-
-			if not self.default[0] and not self.token_input.get():
-				self.token_input.insert(0, "Put your API key here!")
-				self.default[1] = True
-
-		elif event.widget == self.token_input:
-			if self.default[1]:
-				event.widget.delete(0, "end")
-				self.default[1] = False
-
-			if not self.default[1] and not self.url_input.get():
-				self.url_input.insert(0, "Insert your url here! Ex. nccs, ncvps, stanford, etc")
-				self.default[0] = True
-		return None
-
-	def init_gui(self):
-		"""Re-assigns default values to GUI values
-		"""
-		url_default = "Insert your url here! Ex. nccs, ncvps, stanford, etc"
-		self.token_input = ttk.Entry(self, width=50)
-		self.url_input = ttk.Entry(self, width=50)
-
-		self.token_input.delete(0, tk.END), self.url_input.delete(0, tk.END)
-		self.token_input.insert(0, "Put your API key here!"), self.url_input.insert(0, url_default)
-		self.token_input.bind("<Button-1>", self.delete_default), self.url_input.bind("<Button-1>", self.delete_default)
-
-		self.token_input.grid(row=0, column=0, sticky='nsew'), self.url_input.grid(row=1, column=0, sticky='nsew')
-
-		self.ssl_trusted_variable = tk.StringVar(self)
-		self.ssl_options = {'Regular SSL': True, 'Zscaler or Similar Network Security': False}
-
-		self.ssl_trusted_drop_down = ttk.OptionMenu(self, self.ssl_trusted_variable, 'Regular SSL', *self.ssl_options)
-		self.ssl_trusted_drop_down.grid(sticky='nsew')
-
-		self.confirmed_button = ttk.Button(self, command=self._confirm_token, width=20, text='Confirm Information!')
-		self.confirmed_button.grid(sticky='nsew')
-
-		self.error = ttk.Label(self, text="Sorry, either your URL or API key is incorrect!")
-
-	def set_ssl(self, _):
-		self.controller.is_trusted_ssl = self.ssl_options[self.ssl_trusted_variable.get()]
-
-	def _confirm_token(self):
-		"""Confirms the token and url match together and a single query to the Canvas API can be made successfully
-		"""
-
-		# Gets the current tokens from the ttk.Entry menus - see self.init_gui()
-		cur_token = self.token_input.get()
-		cur_url = self.url_input.get()
-
-		# Sets up the target url for the api and token information
-		api_target = "http://{}.instructure.com/api/v1/users/activity_stream".format(cur_url)
-		headers = {'Authorization': 'Bearer {}'.format(cur_token)}
-		try:
-			test = requests.put(api_target, headers=headers, verify=self.controller.is_trusted_ssl)
-
-			if test.status_code == 200:
-				# If the response is positive the information is saved for storage in a token.json file
-				with open('{}/token.json'.format(temp_dir), 'w') as f:
-					json.dump({'token': cur_token, 'url': "http://" + cur_url + ".instructure.com",
-					           'trusted_ssl': self.controller.is_trusted_ssl}, f)
-
-				# Sets up the information so that the program can continue to run without having to reload the data
-				self.controller.url = "http://" + cur_url + ".instructure.com"
-				self.controller.token = cur_token
-				self.controller.headers = {"Authorization": "Bearer {}".format(cur_token)}
-				self.controller.change_frame('MainMenu')
-
-			else:
-				self.error.grid(sticky='nsew')
-
-		# Assumes any error given as a connection error is probably a error with API or URL
-		except requests.exceptions.ConnectionError as e:
-			print("Something has gone wrong with setting up the url! Here's all the information I know: ")
-			print("{}".format(api_target), "{}".format(headers), "{}".format(cur_url), "{}".format(cur_token))
-			print(e)
-			self.error.grid(sticky='nsew')
-
-
 class MainMenu(tk.Frame):
 	"""Main Menu storing the ability to choose from classes, modules, and quizzes to locate test data to train on
 	"""
@@ -254,6 +135,9 @@ class MainMenu(tk.Frame):
 
 		self.parent = parent
 		self.controller = controller
+
+		# Placeholder variables for Settings Menu
+		self.settings_button = None
 
 		# Placeholder variables for Collector objects to be created when a section is chosen
 		self.user_collector = None
@@ -315,8 +199,12 @@ class MainMenu(tk.Frame):
 		self.courses = self.user_collector.get_associated_courses()
 		course_names = list(self.courses.keys())
 
+		self.settings_button = ttk.Button(self, text='Settings',
+			command=lambda: self.controller.change_frame('SettingsMenu'))
+		self.settings_button.grid(row=0, column=0, sticky='e')
+
 		self.course_drop_down = ttk.OptionMenu(self, self.course_variable, "Select A Course!", *course_names)
-		self.course_drop_down.grid(row=0, column=0, sticky='nsew')
+		self.course_drop_down.grid(row=1, column=0, sticky='nsew')
 
 		self.course_variable.trace('w', self.update_both)
 
@@ -438,47 +326,55 @@ class MainMenu(tk.Frame):
 		self.controller.autoencoder_frame()
 
 
-class SettingsMenu(tk.Frame):
-	"""
-	TODO: Retool as a child of TokenSelector/Make General Settings Menu
-	TODO: [Settings Icon] https://www.reddit.com/r/learnpython/comments/4kjie3/how_to_include_gui_images_with_pyinstaller/
-	"""
+class GeneralSettings(tk.Frame):
 	def __init__(self, parent, controller):
+		"""Simple __init__ function to call the parent init and setup default values
+
+		The values have to exist during the first call to these classes in the backend class values are unable to be
+		filled due to the uncertain condition of self.controller.token or self.controller.url
+
+		:param parent: The parent containing the child frame, this is set to the MainBackEnd's self.container
+					   :type: tk.Frame()
+		:param controller: The tkinter root that is able to add and refresh the GUI
+					   :type: tk.Tk()
+		"""
 		tk.Frame.__init__(self, parent)
+
 		self.parent = parent
 		self.controller = controller
 
-		self.token_change_entry = None
-		self.url_change_entry = None
-		self.CA_change_entry = None
-		self.confirm_button = None
+		# Both of these are reclassified later as tk.Entry() objects to allow for users to input Canvas API information
+		self.token_input = None
+		self.url_input = None
+
+		self.ssl_trusted_variable = None
+		self.ssl_trusted_drop_down = None
+		self.ssl_options = None
+
+		# These are both placeholders to take on the value of input values from token and url input objects
+		self.token = None
+		self.url = None
+
+		# Setups confirmation information that will be used to verify API information
+		self.confirmed_button = None
+
 		self.error = None
-
-	def init_gui(self):
-		self.error = ttk.Entry(self, text='This Information Does Not Appear To Work!')
-		self.token_change_entry = ttk.Entry(self, text=self.controller.token)
-		self.url_change_entry = ttk.Entry(self, text=self.controller.url)
-		self.CA_change_entry = ttk.Entry(self, text=self.controller.is_trusted_ssl)
-		self.confirm_button = ttk.Button(self, text="Confirm Information!", command=self._confirm_token)
-
-		self.token_change_entry.grid(sticky='nsew')
-		self.url_change_entry.grid(sticky='nsew')
-		self.CA_change_entry.grid(sticky='nsew')
-		self.confirm_button.grid(sticky='nsew')
+		self.default = [True, True]
 
 	def _confirm_token(self):
 		"""Confirms the token and url match together and a single query to the Canvas API can be made successfully
 		"""
 
-		# Gets the current tokens from the tk.Entry menus - see self.init_gui()
-		cur_token = self.token_change_entry.get()
-		cur_url = self.url_change_entry.get()
+		# Gets the current tokens from the ttk.Entry menus - see self.init_gui()
+		cur_token = self.token_input.get()
+		cur_url = self.url_input.get()
 
 		# Sets up the target url for the api and token information
 		api_target = "http://{}.instructure.com/api/v1/users/activity_stream".format(cur_url)
 		headers = {'Authorization': 'Bearer {}'.format(cur_token)}
 		try:
-			test = requests.put(api_target, headers=headers, verify=self.CA_change_entry.get())
+			test = requests.put(api_target, headers=headers, verify=self.controller.is_trusted_ssl)
+
 			if test.status_code == 200:
 				# If the response is positive the information is saved for storage in a token.json file
 				with open('{}/token.json'.format(temp_dir), 'w') as f:
@@ -500,6 +396,97 @@ class SettingsMenu(tk.Frame):
 			print("{}".format(api_target), "{}".format(headers), "{}".format(cur_url), "{}".format(cur_token))
 			print(e)
 			self.error.grid(sticky='nsew')
+
+
+class TokenSelector(GeneralSettings):
+	"""Allows the user to setup Canvas API information and store it in a .json format in the temp/data folder
+	"""
+	def __init__(self, parent, controller):
+		GeneralSettings.__init__(self, parent, controller)
+
+	def delete_default(self, event):
+		"""Changes the default text to nothing or resets it if nothing has been put in
+		:param event: Tkinter GUI event
+		:return: None
+		"""
+		if event.widget == self.url_input:
+			if self.default[0]:
+				event.widget.delete(0, "end")
+				self.default[0] = False
+
+			if not self.default[0] and not self.token_input.get():
+				self.token_input.insert(0, "Put your API key here!")
+				self.default[1] = True
+
+		elif event.widget == self.token_input:
+			if self.default[1]:
+				event.widget.delete(0, "end")
+				self.default[1] = False
+
+			if not self.default[1] and not self.url_input.get():
+				self.url_input.insert(0, "Insert your url here! Ex. nccs, ncvps, stanford, etc")
+				self.default[0] = True
+		return None
+
+	def init_gui(self):
+		"""Re-assigns default values to GUI values
+		"""
+		url_default = "Insert your url here! Ex. nccs, ncvps, stanford, etc"
+		self.token_input = ttk.Entry(self, width=50)
+		self.url_input = ttk.Entry(self, width=50)
+
+		self.token_input.delete(0, tk.END), self.url_input.delete(0, tk.END)
+		self.token_input.insert(0, "Put your API key here!"), self.url_input.insert(0, url_default)
+		self.token_input.bind("<Button-1>", self.delete_default), self.url_input.bind("<Button-1>", self.delete_default)
+
+		self.token_input.grid(row=0, column=0, sticky='nsew'), self.url_input.grid(row=1, column=0, sticky='nsew')
+
+		self.ssl_trusted_variable = tk.StringVar(self)
+		self.ssl_options = {'Regular SSL': True, 'Zscaler or Similar Network Security': False}
+
+		self.ssl_trusted_drop_down = ttk.OptionMenu(self, self.ssl_trusted_variable, 'Regular SSL', *self.ssl_options)
+		self.ssl_trusted_drop_down.grid(sticky='nsew')
+
+		self.confirmed_button = ttk.Button(self, command=self._confirm_token, width=20, text='Confirm Information!')
+		self.confirmed_button.grid(sticky='nsew')
+
+		self.error = ttk.Label(self, text="Sorry, either your URL or API key is incorrect!")
+
+	def set_ssl(self, _):
+		self.controller.is_trusted_ssl = self.ssl_options[self.ssl_trusted_variable.get()]
+
+
+class SettingsMenu(GeneralSettings):
+	"""
+	TODO: Retool as a child of TokenSelector/Make General Settings Menu
+	TODO: [Settings Icon] https://www.reddit.com/r/learnpython/comments/4kjie3/how_to_include_gui_images_with_pyinstaller/
+	"""
+	def __init__(self, parent, controller):
+		GeneralSettings.__init__(self, parent, controller)
+		self.type_of_separation = None
+		self.type_of_separation_var = None
+
+	def init_gui(self):
+		# Sets up Token Input
+		self.token_input = ttk.Entry(self, width=50)
+		self.token_input.grid()
+
+		# Sets up URL Input Button
+		self.url_input = ttk.Entry(self, width=50)
+		self.url_input.grid()
+
+		# Sets up the type of separation drop down
+		self.type_of_separation_var = tk.StringVar()
+		self.type_of_separation_var.set(self.controller.separation_type)
+		self.type_of_separation = ttk.OptionMenu(self, self.type_of_separation_var,
+			self.controller.separation_options[0], *self.controller.separation_options)
+		self.type_of_separation.grid(sticky='ew')
+
+		# Sets up confirm button
+		self.confirmed_button = ttk.Button(self, text='Confirm Settings!')
+		self.confirmed_button.grid()
+
+
 
 
 class EULAMenu(tk.Frame):
