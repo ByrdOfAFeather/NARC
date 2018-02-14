@@ -35,6 +35,8 @@ class DevSettingsMenu(tk.Frame):
 		self.threshold_input = None
 		self.epochs_input = None
 
+		self.options_buttons = None
+
 	def init_gui(self):
 		"""Sets up input for hyper parameters and their default values, along with a warning
 		"""
@@ -74,6 +76,20 @@ class DevSettingsMenu(tk.Frame):
 		# Sets up a confirm button
 		confirm_button = ttk.Button(self, text='Confirm!', command=self.params_config)
 		confirm_button.grid()
+
+		self.options_buttons = {
+			'Changed Questions': tk.IntVar(),
+			'Average Question Time': tk.IntVar(),
+			'User Scores': tk.IntVar(),
+			'Time Taken': tk.IntVar(),
+			'Page Leaves': tk.IntVar()
+		}
+
+		check_list = [ttk.Checkbutton(self, text=text, var=var) for text, var in self.options_buttons.items()]
+		print(check_list)
+
+		for col_i, buttons in enumerate(check_list):
+			buttons.grid(row=col_i + 1, column=2, columnspan=2, sticky='w')
 
 	def params_config(self):
 		"""Sets up parameters to pass to the AutoEncoder
@@ -123,7 +139,12 @@ class DevSettingsMenu(tk.Frame):
 			else:
 				kwargs[index] = float(values)
 
-		self.controller.autoencoder_frame(**kwargs)
+		options = []
+		for index in self.options_buttons.keys():
+			if self.options_buttons[index].get():
+				options.append(index)
+		print(options)
+		self.controller.autoencoder_frame(*options, **kwargs)
 
 
 class AutoEncoderSettingsMenu(tk.Frame):
@@ -142,25 +163,41 @@ class AutoEncoderSettingsMenu(tk.Frame):
 		self.start_button = None
 
 		self.params = None
+		self.data_options = None
 
 		self.built_data_set = False
+		self.previous_options = None
 
 	def build_data_set(self):
 		"""Builds data set
 		Sets up the pre_flags which are cheaters pre separated based on unreasonable values in page_leaves
 		"""
 		self.quiz = self.controller.cur_quiz
-		self.quiz_constructor = constructors.QuizEvents(self.quiz, anon=False, pre_flags=True)
+		self.quiz_constructor = constructors.QuizEvents(self.quiz, False, True, self, *self.data_options)
 		data_sets = self.quiz_constructor.build_dataframe()
 		self.pre_flags = data_sets[0]
 		self.data_set = data_sets[1]
+		self.labelvar.set("Data Set Built.")
 		self.built_data_set = True
 
-	def init_gui(self, **kwargs):
+	def init_gui(self, *data_options, **kwargs):
 		"""Initializes GUI for Tensorflow start menu
 		:param kwargs: Arguments passed to override the default values of the AutoEncoder. These come from the DevSettingsMenu
 		"""
+		self.previous_options = self.data_options
+
+		if len(data_options):
+			print(data_options)
+			self.data_options = data_options
+		else:
+			self.data_options = ['Average Question Time', 'Time Taken', 'Page Leaves']
 		self.params = kwargs
+
+		self.built_data_set = 1 if self.previous_options == self.data_options else 0
+
+		print(self.previous_options)
+		print(self.data_options)
+		print(self.built_data_set)
 
 		# Resets the menu
 		for widget in self.winfo_children():
@@ -169,7 +206,7 @@ class AutoEncoderSettingsMenu(tk.Frame):
 
 		self.labelvar = tk.StringVar(self)
 		label = ttk.Label(self, textvar=self.labelvar)
-		label.grid(sticky='nsew')
+		label.grid(sticky='nsew', columnspan=10)
 
 		# TODO: Settings for data set
 		if not self.built_data_set:
@@ -189,75 +226,63 @@ class AutoEncoderSettingsMenu(tk.Frame):
 		self.start_button = ttk.Button(self, text="Start Separation Process!", command=self.start_separator)
 		self.start_button.grid(sticky='nsew')
 
-	# def start_autoencoder(self):
-	# 	"""Starts the process of separating the data through a autoencoder.
-	#
-	# 	This function relies on the automatically separated cheaters from the data-set. These cheaters are people
-	# 	who have a extremely high number of page leaves when the data set is built. The are separated into the pre-flags
-	# 	dataframe, which contains their index and information. These are then added back into the menu, already flagged
-	# 	as cheaters. They are found by comparing the index of the original data_set that is fed into the autoencoder and
-	# 	the index of the pre_flag. If a item is in pre_flag but not in the original data_set, then it is labeled as a
-	# 	positive for cheating.
-	#
-	# 	"""
-	# 	self.built_data_set = False
-	#
-	# 	# Resets the start button if it already exists (Returning from DevSettings Menu or by Selecting Another Quiz)
-	# 	self.start_button.grid_forget()
-	# 	self.start_button.destroy()
-	#
-	# 	# Sets a default value for the temp_back_button
-	# 	temp_back_button = None
-	#
-	# 	# Creates a auto encoder object
-	# 	self.labelvar.set("Starting AutoEncoder!")
-	# 	self.controller.update()
-	# 	jack_walsh = predictors.AutoEncoder(self.data_set, self.data_set)
-	#
-	# 	if self.params:
-	# 		# if parameters are passed when called the function, pass them into separate
-	# 		output = jack_walsh.separate(labelvar=self.labelvar, controller=self.controller, **self.params)
-	# 	else:
-	# 		# otherwise, use the default function
-	# 		output = jack_walsh.separate(labelvar=self.labelvar, controller=self.controller)
-	#
-	# 	# Reset the temp_back_button
-	# 	if temp_back_button is not None:
-	# 		temp_back_button.pack_forget()
-	# 		temp_back_button.destroy()
-	#
-	# 	# Starts the clustering algorithm (won't start until the separation finishes)
-	# 	self.labelvar.set("Starting Clustering Algorithm!")
-	# 	self.controller.update()
-	# 	omega = predictors.KMeansSeparator(output)
-	# 	results = omega.classify(clusters=2, n_init=50000)
-	#
-	# 	# outputs the cheaters
-	# 	self.labelvar.set("DO NOT TAKE AT FACE VALUE")
-	# 	self.display_outputs(results)
-
 	def start_separator(self):
 		if self.controller.separation_type == 'Auto Encoder':
 			self.start_autoencoder()
 		elif self.controller.separation_type == 'Basic Anomaly':
 			self.start_basic_anomaly()
-		elif self.controller.separation_type == 'No Exception':
+		elif self.controller.separation_type == 'No Exceptions':
 			self.start_no_exception()
 
 	def start_autoencoder(self):
-		pass
+		"""Starts the process of separating the data through a autoencoder.
 
-	def start_basic_anomaly(self):
-		jack_walsh = predictors.OneClassSVMSeperator(self.data_set)
-		jack_walsh.run()
+		This function relies on the automatically separated cheaters from the data-set. These cheaters are people
+		who have a extremely high number of page leaves when the data set is built. The are separated into the pre-flags
+		dataframe, which contains their index and information. These are then added back into the menu, already flagged
+		as cheaters. They are found by comparing the index of the original data_set that is fed into the autoencoder and
+		the index of the pre_flag. If a item is in pre_flag but not in the original data_set, then it is labeled as a
+		positive for cheating.
 
-	def start_no_exception(self):
-		pass
+		"""
+		self.built_data_set = False
 
-	def display_outputs(self, results):  # Gets the index values of specific classes
+		# Resets the start button if it already exists (Returning from DevSettings Menu or by Selecting Another Quiz)
+		self.start_button.grid_forget()
+		self.start_button.destroy()
+
+		# Sets a default value for the temp_back_button
+		temp_back_button = None
+
+		# Creates a auto encoder object
+		self.labelvar.set("Starting AutoEncoder!")
+		self.controller.update()
+		jack_walsh = predictors.AutoEncoder(self.data_set, self.data_set)
+
+		if self.params:
+			# if parameters are passed when called the function, pass them into separate
+			output = jack_walsh.separate(labelvar=self.labelvar, controller=self.controller, **self.params)
+		else:
+			# otherwise, use the default function
+			output = jack_walsh.separate(labelvar=self.labelvar, controller=self.controller)
+
+		# Starts the clustering algorithm (won't start until the separation finishes)
+		self.labelvar.set("Starting Clustering Algorithm!")
+		self.controller.update()
+		omega = predictors.KMeansSeparator(output)
+		results = omega.classify(clusters=2, n_init=50000)
+
+		# outputs the cheaters
+		self.labelvar.set("DO NOT TAKE AT FACE VALUE")
+		self.display_autoencoder_outputs(results)
+
+	def display_autoencoder_outputs(self, results):
 		"""Sets up the display with outputs from the KMeansSeparator function
 		:param results: return value of KMeansSeparator.classify() function
 		"""
+
+		temp_back_button = None
+
 		# Gets a series where the class is equal to 1 or 0
 		class0 = results[results['Class'] == 0]
 		class1 = results[results['Class'] == 1]
@@ -322,13 +347,74 @@ class AutoEncoderSettingsMenu(tk.Frame):
 					)))
 
 		# Grids labels
-		for items in list_of_labels:
-			items.grid()
+		i = -1
+		row_index = 0
+		for labels in list_of_labels:
+			i += 1
+
+			if i % 5 == 0:
+				row_index += 1
+				i = 0
+
+			labels.config(font=("TkDefaultFont", 9))
+			labels.grid(row=row_index + 2, column=i, sticky='n', padx=10, pady=5)
+
+		# Reset the temp_back_button
+		if temp_back_button is not None:
+			temp_back_button.pack_forget()
+			temp_back_button.destroy()
 
 		# Sets a back button to return and select another quiz
 		temp_back_button = ttk.Button(self, text="Select Another Quiz",
 		                             command=lambda: self.controller.change_frame('MainMenu'))
-		temp_back_button.grid()
+		temp_back_button.grid(row=0, column=4)
 
+	def start_basic_anomaly(self):
+		self.built_data_set = False
+		jack_walsh = predictors.OneClassSVMSeperator(self.data_set)
+		jack_walsh.run()
 
+	def start_no_exception(self):
+		# Sets a default value for the temp_back_button
+		temp_back_button = None
 
+		self.built_data_set = False
+
+		self.labelvar.set("{} Indicates a cheat, {} Indicates a not cheater".format(u'✓', u'❌'))
+
+		# Resets the start button if it already exists (Returning from DevSettings Menu or by Selecting Another Quiz)
+		self.start_button.grid_forget()
+		self.start_button.destroy()
+
+		label_list = []
+		cheaters = self.data_set.loc[self.data_set['page_leaves'] > 1]
+		self.data_set.drop(cheaters.index.values, inplace=True)
+
+		for items in self.data_set.index.values:
+			label_list.append(ttk.Label(self, text="{}\n{}".format(items, u'❌')))
+
+		for items in cheaters.index.values:
+			label_list.append(ttk.Label(self, text="{}\n{}\nPage Leaves: {}".format(items, u'✓',
+			                                                                        cheaters.loc[items, 'page_leaves'])))
+
+		# Grids labels
+		i = -1
+		row_index = 0
+		for labels in label_list:
+			i += 1
+
+			if i % 5 == 0:
+				row_index += 1
+				i = 0
+
+			labels.config(font=("TkDefaultFont", 9))
+			labels.grid(row=row_index, column=i, sticky='w', padx=10, pady=5)
+
+		# Reset the temp_back_button
+		if temp_back_button is not None:
+			temp_back_button.pack_forget()
+			temp_back_button.destroy()
+
+		temp_back_button = ttk.Button(self, text="Select Another Quiz",
+		                             command=lambda: self.controller.change_frame('MainMenu'))
+		temp_back_button.grid(row=0, column=4)

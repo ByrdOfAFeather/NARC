@@ -1,5 +1,6 @@
 import tkinter as tk
 import tkinter.ttk as ttk
+from PIL import Image, ImageTk
 from DataProcessing import collectors
 import ml_displayers as tfd
 import requests
@@ -57,7 +58,7 @@ class MainBackEnd(tk.Tk):
 
 		# Sets up the default type of separation {AutoEncoder = Autoencoder and KMeans, Anomaly = OneClassSVM,
 		# No Exception = Always if page leaves > 1}
-		self.separation_options = ['Auto Encoder', 'Basic Anomaly', 'No Exception']
+		self.separation_options = ['Auto Encoder', 'Basic Anomaly', 'No Exceptions']
 		self.separation_type = self.separation_options[0]
 
 		# Sets up the container frame which will serve as a important piece of related classes
@@ -99,15 +100,17 @@ class MainBackEnd(tk.Tk):
 		self.frames[frame].winfo_toplevel().geometry("")
 		self.frames[frame].tkraise()
 		self.frames[frame].grid(sticky='nsew')
+		print('I am starting the GUI')
 		self.frames[frame].init_gui()
+		print('I started the GUI')
 
-	def autoencoder_frame(self, **kwargs):
+	def autoencoder_frame(self, *data_options, **kwargs):
 		for frame_values in self.frames.values():
 			frame_values.grid_remove()
 		self.frames['AutoEncoderSettingsMenu'].winfo_toplevel().geometry("")
 		self.frames['AutoEncoderSettingsMenu'].tkraise()
 		self.frames['AutoEncoderSettingsMenu'].grid(sticky='nsew')
-		self.frames['AutoEncoderSettingsMenu'].init_gui(**kwargs)
+		self.frames['AutoEncoderSettingsMenu'].init_gui(*data_options, **kwargs)
 
 	def _setup_token(self):
 		token = json.load(open("{}/token.json".format(temp_dir)))
@@ -173,6 +176,9 @@ class MainMenu(tk.Frame):
 		self.module_error_label = None
 		self.quiz_error_label = None
 
+		self.test_var = None
+		self.other_test_var = None
+
 	def init_gui(self):
 		"""Function to setup the menu with just a list of courses linked to the current API User's account
 		"""
@@ -194,17 +200,28 @@ class MainMenu(tk.Frame):
 		self.user_collector = collectors.UserCollector(self.controller.url,
 		                                               self.controller.headers, self.controller.is_trusted_ssl)
 
+		temp_label = ttk.Label(self, text='Getting Courses...')
+		temp_label.grid()
+
+		self.controller.update()
+
 		# Declares variables used for the course selection
 		self.course_variable = tk.StringVar(self)
 		self.courses = self.user_collector.get_associated_courses()
 		course_names = list(self.courses.keys())
 
-		self.settings_button = ttk.Button(self, text='Settings',
-			command=lambda: self.controller.change_frame('SettingsMenu'))
-		self.settings_button.grid(row=0, column=0, sticky='e')
+		temp_label.grid_forget()
+		temp_label.destroy()
+
+		self.test_var = Image.open(r'placeholder')
+		self.other_test_var = ImageTk.PhotoImage(self.test_var)
+		self.settings_button = tk.Button(self, text='Settings',
+			command=lambda: self.controller.change_frame('SettingsMenu'), borderwidth=0,
+			image=self.other_test_var)
+		self.settings_button.grid(row=0, column=1, sticky='n')
 
 		self.course_drop_down = ttk.OptionMenu(self, self.course_variable, "Select A Course!", *course_names)
-		self.course_drop_down.grid(row=1, column=0, sticky='nsew')
+		self.course_drop_down.grid(row=0, column=0, sticky='nsew')
 
 		self.course_variable.trace('w', self.update_both)
 
@@ -256,8 +273,16 @@ class MainMenu(tk.Frame):
 													 class_id=self.cur_course_id,
 													 verify=self.controller.is_trusted_ssl)
 
+		temp_label = ttk.Label(self, text='Getting Modules...')
+		temp_label.grid()
+		self.controller.update()
+
 		# Gets all the modules associated with a course
 		self.modules = self.course_collector.get_course_modules()
+
+		temp_label.grid_forget()
+		temp_label.destroy()
+		self.controller.update()
 
 		# Sets up the StringVar to re-query every time the option is changed.
 		module_names = list(self.modules.keys())
@@ -266,7 +291,8 @@ class MainMenu(tk.Frame):
 
 		# Sets up the module drop down based on the StringVar and declares it's fixed GUI position
 		self.module_drop_down = ttk.OptionMenu(self, self.module_variable, module_names[0], *module_names)
-		self.module_drop_down.grid(row=1, column=0, sticky='nsew')
+		self.module_drop_down.grid(row=2, column=0, sticky='nsew')
+		self.settings_button.grid(column=1, row=0)
 
 	def update_quiz(self, *_):
 		"""Updates the quiz menu
@@ -292,13 +318,21 @@ class MainMenu(tk.Frame):
 		                                          url=self.controller.url, header=self.controller.headers,
 		                                          verify=self.controller.is_trusted_ssl)
 
+		temp_label = ttk.Label(self, text='Getting Quizzes...')
+		temp_label.grid()
+		self.controller.update()
+
 		# Sets up a list of quizzes and their respective names
 		self.quizzes = self.module_collector.get_module_items()['Subsections']['Quizzes']
 		quiz_names = list(self.quizzes.keys())
 
+		temp_label.grid_forget()
+		temp_label.destroy()
+		self.controller.update()
+
 		# Creates a button that links to starting the auto_encoder GUI with confirmed settings
 		self.select_quiz = ttk.Button(self, text='Select Quiz!', command=self.start_autoencoder_gui)
-		self.select_quiz.grid(row=1, column=1, sticky='nsew')
+		self.select_quiz.grid(row=2, column=1, sticky='nsew')
 
 		# Labels a default value if no quizzes are found
 		if len(quiz_names) == 0:
@@ -312,7 +346,9 @@ class MainMenu(tk.Frame):
 			self.quiz_variable = tk.StringVar(self)
 
 			self.quiz_drop_down = ttk.OptionMenu(self, self.quiz_variable, default, *quiz_names)
-			self.quiz_drop_down.grid(row=2, column=0, sticky='nsew')
+			self.quiz_drop_down.grid(row=3, column=0, sticky='nsew')
+
+		self.settings_button.grid(column=1, row=0)
 
 	def start_autoencoder_gui(self):
 		"""Starts the GUI for the autoencoder
@@ -361,6 +397,9 @@ class GeneralSettings(tk.Frame):
 		self.error = None
 		self.default = [True, True]
 
+		# Sets up default value  values that will fill in the blank when nothing is typed
+		self.default_values = None
+
 	def _confirm_token(self):
 		"""Confirms the token and url match together and a single query to the Canvas API can be made successfully
 		"""
@@ -385,7 +424,6 @@ class GeneralSettings(tk.Frame):
 				self.controller.url = "http://" + cur_url + ".instructure.com"
 				self.controller.token = cur_token
 				self.controller.headers = {"Authorization": "Bearer {}".format(cur_token)}
-				self.controller.change_frame('MainMenu')
 
 			else:
 				self.error.grid(sticky='nsew')
@@ -396,13 +434,6 @@ class GeneralSettings(tk.Frame):
 			print("{}".format(api_target), "{}".format(headers), "{}".format(cur_url), "{}".format(cur_token))
 			print(e)
 			self.error.grid(sticky='nsew')
-
-
-class TokenSelector(GeneralSettings):
-	"""Allows the user to setup Canvas API information and store it in a .json format in the temp/data folder
-	"""
-	def __init__(self, parent, controller):
-		GeneralSettings.__init__(self, parent, controller)
 
 	def delete_default(self, event):
 		"""Changes the default text to nothing or resets it if nothing has been put in
@@ -415,7 +446,7 @@ class TokenSelector(GeneralSettings):
 				self.default[0] = False
 
 			if not self.default[0] and not self.token_input.get():
-				self.token_input.insert(0, "Put your API key here!")
+				self.token_input.insert(0, self.default_values[0])
 				self.default[1] = True
 
 		elif event.widget == self.token_input:
@@ -424,13 +455,25 @@ class TokenSelector(GeneralSettings):
 				self.default[1] = False
 
 			if not self.default[1] and not self.url_input.get():
-				self.url_input.insert(0, "Insert your url here! Ex. nccs, ncvps, stanford, etc")
+				self.url_input.insert(0, self.default_values[1])
 				self.default[0] = True
 		return None
+
+
+class TokenSelector(GeneralSettings):
+	"""Allows the user to setup Canvas API information and store it in a .json format in the temp/data folder
+	"""
+	def __init__(self, parent, controller):
+		GeneralSettings.__init__(self, parent, controller)
 
 	def init_gui(self):
 		"""Re-assigns default values to GUI values
 		"""
+		self.default_values = [
+			'Put your API key here',
+			'Insert your url here! Ex. nccs, ncvps, stanford, etc'
+		]
+
 		url_default = "Insert your url here! Ex. nccs, ncvps, stanford, etc"
 		self.token_input = ttk.Entry(self, width=50)
 		self.url_input = ttk.Entry(self, width=50)
@@ -447,10 +490,13 @@ class TokenSelector(GeneralSettings):
 		self.ssl_trusted_drop_down = ttk.OptionMenu(self, self.ssl_trusted_variable, 'Regular SSL', *self.ssl_options)
 		self.ssl_trusted_drop_down.grid(sticky='nsew')
 
-		self.confirmed_button = ttk.Button(self, command=self._confirm_token, width=20, text='Confirm Information!')
+		self.confirmed_button = ttk.Button(self, command=self.confirm_settings, width=20, text='Confirm Information!')
 		self.confirmed_button.grid(sticky='nsew')
 
 		self.error = ttk.Label(self, text="Sorry, either your URL or API key is incorrect!")
+
+	def confirm_settings(self):
+		self.controller.change_frame('MainMenu')
 
 	def set_ssl(self, _):
 		self.controller.is_trusted_ssl = self.ssl_options[self.ssl_trusted_variable.get()]
@@ -466,27 +512,60 @@ class SettingsMenu(GeneralSettings):
 		self.type_of_separation = None
 		self.type_of_separation_var = None
 
+		self.separation_label = None
+		self.url_label = None
+		self.token_label = None
+
 	def init_gui(self):
+		"""Initializes GUI values
+		"""
+		for widget in self.winfo_children():
+			widget.pack_forget()
+			widget.destroy()
+
+		self.default_values = [
+			self.controller.token,
+			self.controller.url.split('/')[2].split('.')[0]
+		]
+
+		self.token_label = ttk.Label(self, text="API KEY:")
+		self.token_label.grid(sticky='n')
+
 		# Sets up Token Input
-		self.token_input = ttk.Entry(self, width=50)
+		self.token_input = ttk.Entry(self, width=60)
 		self.token_input.grid()
 
+		self.url_label = ttk.Label(self, text="URL:")
+		self.url_label.grid(sticky='n')
+
 		# Sets up URL Input Button
-		self.url_input = ttk.Entry(self, width=50)
+		self.url_input = ttk.Entry(self, width=60)
 		self.url_input.grid()
 
+		self.token_input.delete(0, tk.END), self.url_input.delete(0, tk.END)
+		self.token_input.insert(0, self.default_values[0]), self.url_input.insert(0, self.default_values[1])
+		self.token_input.bind("<Button-1>", self.delete_default), self.url_input.bind("<Button-1>", self.delete_default)
+
+		self.separation_label = ttk.Label(self, text='Choose The Type Of Separation You want To Use:')
+		self.separation_label.grid(row=0, column=2)
+
 		# Sets up the type of separation drop down
+		separation_type_style = ttk.Style()
+		separation_type_style.configure("OP.TMenubutton", background='#dedede')
 		self.type_of_separation_var = tk.StringVar()
 		self.type_of_separation_var.set(self.controller.separation_type)
 		self.type_of_separation = ttk.OptionMenu(self, self.type_of_separation_var,
-			self.controller.separation_options[0], *self.controller.separation_options)
-		self.type_of_separation.grid(sticky='ew')
+			self.controller.separation_type, *self.controller.separation_options, style='OP.TMenubutton')
+		self.type_of_separation.grid(sticky='ew', row=1, column=2)
 
 		# Sets up confirm button
-		self.confirmed_button = ttk.Button(self, text='Confirm Settings!')
-		self.confirmed_button.grid()
+		self.confirmed_button = ttk.Button(self, text='Confirm Settings!', command=self.confirm_settings)
+		self.confirmed_button.grid(column=1, sticky='n')
 
-
+	def confirm_settings(self):
+		self._confirm_token()
+		self.controller.separation_type = self.type_of_separation_var.get()
+		self.controller.change_frame('MainMenu')
 
 
 class EULAMenu(tk.Frame):

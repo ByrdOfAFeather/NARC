@@ -17,16 +17,17 @@ temp_dir = r'..\.\temp/data'
 
 class QuizEvents:
 	"""A builder of data sets for quiz event information"""
-	def __init__(self, quiz, questions_answered=None, anon=True, pre_flags=False):
-		print("Initializing Quiz")
+	def __init__(self, quiz, anon=True, pre_flags=False, controller=None, *data_options):
 		self.anon = anon  # anon = anonymous (false: index = user id & true: index = user name)
 		self.data_set = {}
 		self.quiz = quiz
 
-		if not questions_answered: self._get_questions_answered()
-		else: self.questions_answered = questions_answered
+		self._get_questions_answered()
 
 		self.pre_flags = pre_flags
+		self.controller = controller
+		print(data_options)
+		self.data_options = data_options
 		self._init_data_set()
 
 	def _get_questions_answered(self):
@@ -50,12 +51,26 @@ class QuizEvents:
 			self.data_set[user_id] = {}
 		self.data_set['Overall'] = {}
 
-		# self._build_changed_questions(correct_only=True)
-		self._build_average_question_time()
-		# self._build_user_scores()
-		self._build_time_taken()
-		self._build_user_page_leaves()
-		if not self.anon: self._non_anon_data_set()
+		options = {
+			"Changed Questions": self._build_changed_questions,
+			"Average Question Time": self._build_average_question_time,
+			"User Scores": self._build_user_scores,
+			"Time Taken": self._build_time_taken,
+			"Page Leaves": self._build_user_page_leaves,
+		}
+
+		for keys in self.data_options:
+			print(keys)
+			if self.controller is not None:
+				self.controller.labelvar.set("Building {}".format(keys))
+				self.controller.update()
+			options[keys]()
+
+		if not self.anon:
+			if self.controller is not None:
+				self.controller.labelvar.set("Formatting With Names")
+				self.controller.update()
+			self._non_anon_data_set()
 
 	def _build_changed_questions(self, correct_only=False):
 		correct_answers = self.quiz.get_correct_answers()
