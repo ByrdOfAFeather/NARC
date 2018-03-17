@@ -20,14 +20,13 @@ temp_dir = r"..\.\temp/data"
 
 
 class UserCollector:
-	def __init__(self, url, header, verify):
+	def __init__(self, url, header):
 		self.url = url
 		self.header = header
-		self.verify = verify
 
 	def get_associated_courses(self):
 		api_target = r"{}/api/v1/courses?enrollment_state=active&per_page=50"
-		courses = requests.put(api_target.format(self.url), headers=self.header, verify=self.verify)
+		courses = requests.put(api_target.format(self.url), headers=self.header, verify=True)
 		course_dict = {}
 
 		for courses in courses.json():
@@ -41,7 +40,7 @@ class UserCollector:
 class Collector:
 	"""Collects data from the Canvas API
 	"""
-	def __init__(self, url, header, class_id, verify=True):
+	def __init__(self, url, header, class_id):
 		"""
 		:param url: The URL used for Canvas ex. http://stanford.instructure.com
 		:param header: The authorization information for the canvas API
@@ -50,7 +49,6 @@ class Collector:
 		self.header = header
 		self.url = url
 		self.class_id = class_id
-		self.verify = verify
 
 	def get_class_users(self, output_folder, output_file_name):
 		"""Gets all users in a specific class
@@ -59,7 +57,7 @@ class Collector:
 		:return: A dictionary containing user ids linked to user names
 		"""
 		api_target = r'{}/api/v1/courses/{}/enrollments?per_page=50'
-		enrollment = requests.put(api_target.format(self.url, self.class_id), headers=self.header, verify=self.verify)
+		enrollment = requests.put(api_target.format(self.url, self.class_id), headers=self.header, verify=True)
 
 		with open('{}/{}.json'.format(output_folder, output_file_name), 'w') as f:
 			json.dump(enrollment.json(), f)
@@ -74,7 +72,7 @@ class Collector:
 
 	def get_course_modules(self):
 		api_target = "{}/api/v1/courses/{}/modules?per_page=50"
-		module = requests.put(api_target.format(self.url, self.class_id), headers=self.header, verify=self.verify)
+		module = requests.put(api_target.format(self.url, self.class_id), headers=self.header, verify=True)
 		module_dict = {}
 		for modules in module.json():
 			if modules['published']:
@@ -88,9 +86,9 @@ class Collector:
 class Module(Collector):
 	"""Represents and collects data from a single module
 	"""
-	def __init__(self, module_id, url, header, class_id, verify=True):
+	def __init__(self, module_id, url, header, class_id):
 		self.module_id = module_id
-		super(Module, self).__init__(url=url, header=header, class_id=class_id, verify=verify)
+		super(Module, self).__init__(url=url, header=header, class_id=class_id)
 
 	@staticmethod
 	def _get_module_quizzes(module_items):
@@ -128,7 +126,7 @@ class Module(Collector):
 		"""
 		api_target = r"{}/api/v1/courses/{}/modules/{}/items"
 		module = requests.put(api_target.format(self.url, self.class_id, self.module_id),
-			headers=self.header, verify=self.verify)
+			headers=self.header, verify=True)
 		notes = self._get_module_notes(module.json())
 		quizzes = self._get_module_quizzes(module.json())
 		module_dict = {'Subsections': {'Notes': notes, 'Quizzes': quizzes}, 'Overall': module.json()}
@@ -141,16 +139,16 @@ class Module(Collector):
 		for students in self.get_class_users('temp', 'temp'):
 			# url = r'{}/api/v1/courses/{}/analytics/users/{}/activity'
 			api_target = r'{}/api/v1/users/{}/page_views'
-			response = requests.put(api_target.format(self.url, students), headers=self.header, verify=self.verify)
+			response = requests.put(api_target.format(self.url, students), headers=self.header, verify=True)
 			# print(response.json())
 
 
 class Quiz(Collector):
 	"""Represents a single quiz
 	"""
-	def __init__(self, quiz_id, class_id, header, url, verify=True):
+	def __init__(self, quiz_id, class_id, header, url):
 		self.quiz_id = quiz_id
-		super(Quiz, self).__init__(class_id=class_id, header=header, url=url, verify=verify)
+		super(Quiz, self).__init__(class_id=class_id, header=header, url=url)
 		self.submissions = self._get_quiz_submissions()
 
 	def get_quiz_question_ids(self):
@@ -159,7 +157,7 @@ class Quiz(Collector):
 		"""
 		api_target = r'{}/api/v1/courses/{}/quizzes/{}/questions?per_page=100'
 		quiz_response = requests.put(api_target.format(self.url, self.class_id, self.quiz_id),
-			headers=self.header, verify=self.verify)
+			headers=self.header, verify=True)
 
 		quiz_question_id_dict = {}
 		for questions in quiz_response.json():
@@ -178,7 +176,7 @@ class Quiz(Collector):
 		"""
 		api_target = r'{}/api/v1/courses/{}/quizzes/{}/submissions?per_page=100'
 		quiz = requests.put(url=api_target.format(self.url, self.class_id, self.quiz_id),
-			headers=self.header, verify=self.verify)
+			headers=self.header, verify=True)
 
 		submission_list = []
 		submission_dict = []
@@ -255,15 +253,26 @@ class Quiz(Collector):
 		"""
 		event_dict = self.get_quiz_events()
 		user_specific_correct_answer_dict = {}
-		cur_correct_answer_dict = {}
+		questions_answered = self.get_questions_answered()
+
 		for students, event_dict in event_dict.items():
+			cur_correct_answer_dict = {}
+			student_dict = {}
 
 			cur_quiz_data = list(event_dict.values())[0][0]['event_data']['quiz_data']
 
 			for questions in cur_quiz_data:
 				cur_correct_answer_dict[questions["id"]] = [i["id"] for i in questions["answers"] if i["weight"] > 0]
 
-			user_specific_correct_answer_dict[students] = cur_correct_answer_dict
+			cur_questions_answered = questions_answered[students]
+			correct_questions = cur_correct_answer_dict.keys()
+			for questions in cur_questions_answered:
+				for ids in correct_questions:
+					if ids == int(questions['event_data'][0]['quiz_question_id']):
+						if cur_correct_answer_dict[ids][0] == int(questions['event_data'][0]['answer']):
+							student_dict[ids] = cur_correct_answer_dict[ids]
+
+			user_specific_correct_answer_dict[students] = student_dict
 
 		return user_specific_correct_answer_dict
 
@@ -288,7 +297,7 @@ class Quiz(Collector):
 
 			current_list = []
 			for items in event_dict['quiz_submission_events']:
-				if items['event_type'] == 'page_blurred' or items['event_type'] == 'page_focused':
+				if items['event_type'] == 'page_blurred':
 					current_list.append(items)
 
 			page_leaves_dict[user_id] = current_list
@@ -316,7 +325,7 @@ class Quiz(Collector):
 		quiz_events = {}
 		for submission_id, user_id in self.submissions[0]:
 			events = requests.put(api_target.format(self.url, self.class_id, self.quiz_id, submission_id),
-			                      headers=self.header, verify=self.verify)
+			                      headers=self.header, verify=True)
 			quiz_events[user_id] = events.json()
 
 		with open('{}/{}.json'.format(temp_dir, 'events_{}'.format(self.quiz_id)), 'w') as f:
@@ -342,7 +351,7 @@ class Discussion(Collector):
 		"""
 		api_target = '{}/api/v1/courses/{}/discussion_topics/{}/view'
 		r = requests.put(api_target.format(self.url, self.class_id, self.discussion_id),
-			headers=self.header, verify=self.verify)
+			headers=self.header, verify=True)
 
 		with open('{}/{}.json'.format(output_folder, output_file_name), 'w') as f:
 			json.dump(r.json(), f)
