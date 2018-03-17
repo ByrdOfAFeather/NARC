@@ -17,7 +17,7 @@ temp_dir = r'..\.\temp/data'
 
 class QuizEvents:
 	"""A builder of data sets for quiz event information"""
-	def __init__(self, quiz, anon=True, pre_flags=False, controller=None, *data_options):
+	def __init__(self, quiz, data_options, anon=True, pre_flags=False, controller=None):
 		self.anon = anon  # anon = anonymous (false: index = user id & true: index = user name)
 		self.data_set = {}
 		self.quiz = quiz
@@ -26,14 +26,12 @@ class QuizEvents:
 
 		self.pre_flags = pre_flags
 		self.controller = controller
-		print(data_options)
 		self.data_options = data_options
 		self._init_data_set()
 
 	def _get_questions_answered(self):
 		"""Gets submission events and questions answered events
 		"""
-		print("Building Questions Answered")
 		self.submissions = self.quiz.submissions[1]
 		self.questions_answered = self.quiz.get_questions_answered()
 
@@ -57,10 +55,10 @@ class QuizEvents:
 			"User Scores": self._build_user_scores,
 			"Time Taken": self._build_time_taken,
 			"Page Leaves": self._build_user_page_leaves,
+			'Difficulty Index': self._build_difficulty_index
 		}
 
 		for keys in self.data_options:
-			print(keys)
 			if self.controller is not None:
 				self.controller.labelvar.set("Building {}".format(keys))
 				self.controller.update()
@@ -71,6 +69,25 @@ class QuizEvents:
 				self.controller.labelvar.set("Formatting With Names")
 				self.controller.update()
 			self._non_anon_data_set()
+
+	def _build_difficulty_index(self):
+
+		api_target = '{}/api/v1/courses/{}/quizzes/{}/statistics?per_page=10000'
+		question_stats = requests.put(api_target.format(self.quiz.url, self.quiz.class_id, self.quiz.quiz_id),
+		                              headers=self.quiz.header)
+
+		correct_answers = self.quiz.get_correct_answers()
+
+		for students, answers in self.questions_answered.items():
+			self.data_set[str(students)]['difficulty_index'] = 0
+
+			current_correct_answers = correct_answers[students]
+			for correct_questions in current_correct_answers:
+				for question in question_stats.json()['quiz_statistics'][0]['question_statistics']:
+					if int(question['id']) == correct_questions:
+						self.data_set[str(students)]['difficulty_index'] += question['difficulty_index']
+
+		self.data_set['Overall']['difficulty_index'] = 0
 
 	def _build_changed_questions(self, correct_only=False):
 		correct_answers = self.quiz.get_correct_answers()
@@ -168,8 +185,8 @@ class QuizEvents:
 			# Converts the dictionary keys into a list, takes the length to get the total number of questions
 			# the multiplies by .5 to get 50 percent of the total number of questions
 			if self.pre_flags:
-				questions_no_subdivision = len(list(self.quiz.get_quiz_question_ids().keys())) * .75
-				if (cur_length / 2) >= questions_no_subdivision:
+				questions_no_subdivision = len(list(self.quiz.get_quiz_question_ids().keys())) * .70
+				if cur_length >= questions_no_subdivision:
 					self.data_set[user_id]['page_leaves'] = 'CA'
 				else:
 					self.data_set[user_id]['page_leaves'] = cur_length
@@ -207,7 +224,6 @@ class QuizEvents:
 			if len(quiz_users['Overall']) != len(self.data_set['Overall']) or len(quiz_users) != len(self.data_set):
 				rebuild = True
 			else:
-				print("Getting Already Made User Name List")
 				# Sets pandas options for displaying a much larger data set
 				pd.set_option('display.max_columns', 100)
 				pd.set_option('display.width', 100000)
@@ -217,7 +233,6 @@ class QuizEvents:
 		else: rebuild = True
 
 		if rebuild:
-			print("Rebuilding Name List")
 			name_set = {}
 			for ids, values in self.data_set.items():
 				profile = requests.put(r'{}/api/v1/users/{}/profile'.format(self.quiz.url, ids), headers=self.quiz.header)
@@ -293,7 +308,3 @@ class QuizEvents:
 			return pre_flags, data_frame
 		else:
 			return data_frame
-
-
-# if risk > everything:
-# 	program.work()

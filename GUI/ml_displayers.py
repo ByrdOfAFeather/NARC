@@ -48,7 +48,7 @@ class DevSettingsMenu(tk.Frame):
 
 		style = ttk.Style()
 		style.configure('R.TLabel', foreground='red')
-		overall_label = ttk.Label(self, text="WARNING THESE ARE DEVELOPER FEATURES, IF YOU DON'T KNOW WHAT THESE DO, "
+		overall_label = ttk.Label(self, text="WARNING THESE ARE DEVELOPER OPTIONS, IF YOU DON'T KNOW WHAT THESE DO, "
 		                                     "YOU MAY NOT WANT TO EDIT THESE!", style='R.TLabel')
 		overall_label.grid(row=0, column=0)
 
@@ -82,11 +82,11 @@ class DevSettingsMenu(tk.Frame):
 			'Average Question Time': tk.IntVar(),
 			'User Scores': tk.IntVar(),
 			'Time Taken': tk.IntVar(),
-			'Page Leaves': tk.IntVar()
+			'Page Leaves': tk.IntVar(),
+			'Difficulty Index': tk.IntVar()
 		}
 
 		check_list = [ttk.Checkbutton(self, text=text, var=var) for text, var in self.options_buttons.items()]
-		print(check_list)
 
 		for col_i, buttons in enumerate(check_list):
 			buttons.grid(row=col_i + 1, column=2, columnspan=2, sticky='w')
@@ -143,8 +143,7 @@ class DevSettingsMenu(tk.Frame):
 		for index in self.options_buttons.keys():
 			if self.options_buttons[index].get():
 				options.append(index)
-		print(options)
-		self.controller.autoencoder_frame(*options, **kwargs)
+		self.controller.autoencoder_frame(options, **kwargs)
 
 
 class AutoEncoderSettingsMenu(tk.Frame):
@@ -160,44 +159,47 @@ class AutoEncoderSettingsMenu(tk.Frame):
 		self.data_set = None
 		self.pre_flags = None
 		self.labelvar = None
+
 		self.start_button = None
+		self.view_data_button = None
+		self.data_window = None
 
 		self.params = None
 		self.data_options = None
 
 		self.built_data_set = False
 		self.previous_options = None
+		self.previous_course = None
 
 	def build_data_set(self):
 		"""Builds data set
 		Sets up the pre_flags which are cheaters pre separated based on unreasonable values in page_leaves
 		"""
+		self.previous_course = self.controller.cur_quiz.class_id
 		self.quiz = self.controller.cur_quiz
-		self.quiz_constructor = constructors.QuizEvents(self.quiz, False, True, self, *self.data_options)
+		self.quiz_constructor = constructors.QuizEvents(self.quiz, self.data_options, False, True, self)
 		data_sets = self.quiz_constructor.build_dataframe()
 		self.pre_flags = data_sets[0]
 		self.data_set = data_sets[1]
 		self.labelvar.set("Data Set Built.")
 		self.built_data_set = True
 
-	def init_gui(self, *data_options, **kwargs):
+	def init_gui(self, data_options, **kwargs):
 		"""Initializes GUI for Tensorflow start menu
 		:param kwargs: Arguments passed to override the default values of the AutoEncoder. These come from the DevSettingsMenu
 		"""
 		self.previous_options = self.data_options
 
 		if len(data_options):
-			print(data_options)
 			self.data_options = data_options
 		else:
-			self.data_options = ['Average Question Time', 'Time Taken', 'Page Leaves']
+			if self.controller.separation_type == 'No Exceptions':
+				self.data_options = ['Page Leaves']
+			else:
+				self.data_options = ['Average Question Time', 'Time Taken', 'Page Leaves']
 		self.params = kwargs
 
 		self.built_data_set = 1 if self.previous_options == self.data_options else 0
-
-		print(self.previous_options)
-		print(self.data_options)
-		print(self.built_data_set)
 
 		# Resets the menu
 		for widget in self.winfo_children():
@@ -208,17 +210,16 @@ class AutoEncoderSettingsMenu(tk.Frame):
 		label = ttk.Label(self, textvar=self.labelvar)
 		label.grid(sticky='nsew', columnspan=10)
 
-		# TODO: Settings for data set
-		if not self.built_data_set:
+		# Checks if the data set is built or if the quiz has changed since the last build
+		if not self.built_data_set or self.previous_course != self.controller.cur_quiz.class_id:
 			self.labelvar.set("Building Data Set!")
 
 			self.controller.update()
 
 			self.build_data_set()
+
 		else:
 			self.labelvar.set("Data Set Built!")
-			print(self.data_set)
-			print(self.pre_flags)
 
 		# Opens dev settings menu if Ctrl + F12 is pressed
 		self.controller.bind('<Control-F12>', lambda _: self.controller.change_frame('DevSettingsMenu'))
@@ -227,12 +228,47 @@ class AutoEncoderSettingsMenu(tk.Frame):
 		self.start_button.grid(sticky='nsew')
 
 	def start_separator(self):
+		"""Simple function to check for what type of separation the user wants to do
+		"""
 		if self.controller.separation_type == 'Auto Encoder':
 			self.start_autoencoder()
+
+			# Sets up the view data button
+			self.view_data_button = ttk.Button(self, text="View Data!", command=self.open_data_window)
+			self.view_data_button.grid(sticky='nsew')
+
 		elif self.controller.separation_type == 'Basic Anomaly':
 			self.start_basic_anomaly()
+
+			# Sets up the view data button  
+			self.view_data_button = ttk.Button(self, text="View Data!", command=self.open_data_window)
+			self.view_data_button.grid(sticky='nsew')
+
 		elif self.controller.separation_type == 'No Exceptions':
 			self.start_no_exception()
+
+	def open_data_window(self):
+		"""Displays the current data set in a new window, with data summaries"""
+		self.view_data_button.grid_forget()
+		self.view_data_button.destroy()
+
+		self.data_window = tk.Toplevel()
+		c = 0
+		for cols in self.data_set.columns.values:
+			c += 1
+			col_label = ttk.Label(self.data_window, text="{} ".format(cols))
+			col_label.grid(row=0, column=c)
+
+		i, j = 0, 0
+		for index in self.data_set.index.values:
+			i += 1
+			j = 0
+			cur_index_label = ttk.Label(self.data_window, text="{}".format(index))
+			cur_index_label.grid(row=i, column=0)
+			for values in self.data_set.loc[index]:
+				j += 1
+				cur_value_label = ttk.Label(self.data_window, text='{}'.format(values))
+				cur_value_label.grid(row=i, column=j)
 
 	def start_autoencoder(self):
 		"""Starts the process of separating the data through a autoencoder.
@@ -243,7 +279,6 @@ class AutoEncoderSettingsMenu(tk.Frame):
 		as cheaters. They are found by comparing the index of the original data_set that is fed into the autoencoder and
 		the index of the pre_flag. If a item is in pre_flag but not in the original data_set, then it is labeled as a
 		positive for cheating.
-
 		"""
 		self.built_data_set = False
 
@@ -328,17 +363,16 @@ class AutoEncoderSettingsMenu(tk.Frame):
 		list_of_labels = []
 		# Builds labels for the participants, if they don't appear in the results index, they are labeled as
 		# non-anomalous students, therefore, they are classified as non-cheaters.
-		print(results)
 		for items in iterable_index:
 			if items not in results.index.values or str(results.loc[items, 'Cheat']) == 'nan':
-				list_of_labels.append(tk.Label(self, text=items + '\n' + u'❌'))
+				list_of_labels.append(tk.Label(self, text='{}\n{}'.format(items, u'❌')))
 			else:
 				if str(results.loc[items, 'Opposite Distance']) == 'nan':
 					list_of_labels.append(tk.Label(self, text="{}\n{}".format(
 						items, results.loc[items, 'Cheat'])))
 
 				else:
-					list_of_labels.append(tk.Label(self, text="{}\n{}\n{}".format(
+					list_of_labels.append(tk.Label(self, text="{}\n{}\n{}" .format(
 						items, results.loc[items, 'Cheat'],
 						"OD: {}\nADL {}".format(
 							round(results.loc[items, 'Opposite Distance'], 2),
@@ -387,15 +421,15 @@ class AutoEncoderSettingsMenu(tk.Frame):
 		self.start_button.destroy()
 
 		label_list = []
-		cheaters = self.data_set.loc[self.data_set['page_leaves'] > 1]
-		self.data_set.drop(cheaters.index.values, inplace=True)
+		jack_walsh = self.data_set.loc[self.data_set['page_leaves'] >= 1]
+		self.data_set.drop(jack_walsh.index.values, inplace=True)
 
 		for items in self.data_set.index.values:
 			label_list.append(ttk.Label(self, text="{}\n{}".format(items, u'❌')))
 
-		for items in cheaters.index.values:
+		for items in jack_walsh.index.values:
 			label_list.append(ttk.Label(self, text="{}\n{}\nPage Leaves: {}".format(items, u'✓',
-			                                                                        cheaters.loc[items, 'page_leaves'])))
+			                                                                        jack_walsh.loc[items, 'page_leaves'])))
 
 		# Grids labels
 		i = -1

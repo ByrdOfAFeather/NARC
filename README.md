@@ -1,5 +1,5 @@
 <p align="center">
-<img src='https://i.imgur.com/yKuYw0L.png'>
+<img src='https://i.imgur.com/0SEH9TD.png?1'>
 </p>
 
 <h1 align='center'>Product</h1>
@@ -123,13 +123,6 @@ ID as the index or the user name. The data will contain the original testing dat
 sci-kit learn standard scalar applied to it and the predicted cluster (by default there will
 either be 1 or 0).
 
-<h1 align='center'>Notes</h1>
-
-The inclusion of the ability in the GUI to turn off SSL Certificate checks with the requests module is done 
-so that invalid configurations of popular network security software, such as Zscaler, can still 
-use this software. This is to be done at the user’s own risk. This is a temporary solution
-while a more secure one is being developed. For more information about security
-risks and the vulnerability to "man-in-the-middle" attacks when using this mode, see [here](http://docs.python-requests.org/en/master/user/advanced/)
 
 <h1 align='center'>Related Works</h1>
 
@@ -139,6 +132,3 @@ risks and the vulnerability to "man-in-the-middle" attacks when using this mode,
 <h1 align='center'>License</h1>
 
 MIT License, See [License.md](https://github.com/ByrdOfAFeather/NARC/blob/master/LICENSE) for details
-
-
-

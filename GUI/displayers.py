@@ -54,7 +54,6 @@ class MainBackEnd(tk.Tk):
 		self.url = None
 		self.token = None
 		self.headers = None
-		self.is_trusted_ssl = True
 
 		# Sets up the default type of separation {AutoEncoder = Autoencoder and KMeans, Anomaly = OneClassSVM,
 		# No Exception = Always if page leaves > 1}
@@ -65,7 +64,7 @@ class MainBackEnd(tk.Tk):
 		container = tk.Frame(self)
 
 		# Formats the container frame
-		container.grid(sticky='nsew')
+		container.pack(side='top', fill='both', expand=True)
 
 		# Builds a dictionary linking {frame_name: frame_object_reference}
 		self.frames = {}
@@ -100,24 +99,21 @@ class MainBackEnd(tk.Tk):
 		self.frames[frame].winfo_toplevel().geometry("")
 		self.frames[frame].tkraise()
 		self.frames[frame].grid(sticky='nsew')
-		print('I am starting the GUI')
 		self.frames[frame].init_gui()
-		print('I started the GUI')
 
-	def autoencoder_frame(self, *data_options, **kwargs):
+	def autoencoder_frame(self, data_options=[], **kwargs):
 		for frame_values in self.frames.values():
 			frame_values.grid_remove()
 		self.frames['AutoEncoderSettingsMenu'].winfo_toplevel().geometry("")
 		self.frames['AutoEncoderSettingsMenu'].tkraise()
 		self.frames['AutoEncoderSettingsMenu'].grid(sticky='nsew')
-		self.frames['AutoEncoderSettingsMenu'].init_gui(*data_options, **kwargs)
+		self.frames['AutoEncoderSettingsMenu'].init_gui(data_options, **kwargs)
 
 	def _setup_token(self):
 		token = json.load(open("{}/token.json".format(temp_dir)))
 		self.token = token['token']
 		self.url = token['url']
 		self.headers = {'Authorization': 'Bearer {}'.format(self.token)}
-		self.is_trusted_ssl = token['trusted_ssl']
 
 
 class MainMenu(tk.Frame):
@@ -198,7 +194,7 @@ class MainMenu(tk.Frame):
 
 		# Gets a basic UserCollector Object to get course information
 		self.user_collector = collectors.UserCollector(self.controller.url,
-		                                               self.controller.headers, self.controller.is_trusted_ssl)
+		                                               self.controller.headers)
 
 		temp_label = ttk.Label(self, text='Getting Courses...')
 		temp_label.grid()
@@ -213,11 +209,10 @@ class MainMenu(tk.Frame):
 		temp_label.grid_forget()
 		temp_label.destroy()
 
-		self.test_var = Image.open(r'placeholder')
-		self.other_test_var = ImageTk.PhotoImage(self.test_var)
+		# self.test_var = Image.open(r'C:\Users\soult\OneDrive\Pictures\DCshHh3UQAEFkpf.png')
+		# self.other_test_var = ImageTk.PhotoImage(self.test_var)
 		self.settings_button = tk.Button(self, text='Settings',
-			command=lambda: self.controller.change_frame('SettingsMenu'), borderwidth=0,
-			image=self.other_test_var)
+			command=lambda: self.controller.change_frame('SettingsMenu'), borderwidth=0)
 		self.settings_button.grid(row=0, column=1, sticky='n')
 
 		self.course_drop_down = ttk.OptionMenu(self, self.course_variable, "Select A Course!", *course_names)
@@ -270,8 +265,7 @@ class MainMenu(tk.Frame):
 		# Gets the Module ID based on the already made dictionary from a collector class
 		self.course_collector = collectors.Collector(url=self.controller.url,
 		                                             header=self.controller.headers,
-													 class_id=self.cur_course_id,
-													 verify=self.controller.is_trusted_ssl)
+													 class_id=self.cur_course_id)
 
 		temp_label = ttk.Label(self, text='Getting Modules...')
 		temp_label.grid()
@@ -315,8 +309,7 @@ class MainMenu(tk.Frame):
 		# Creates a module collector and sets up a quiz dictionary
 		self.module_collector = collectors.Module(module_id=self.cur_module_id,
 		                                          class_id=self.cur_course_id,
-		                                          url=self.controller.url, header=self.controller.headers,
-		                                          verify=self.controller.is_trusted_ssl)
+		                                          url=self.controller.url, header=self.controller.headers)
 
 		temp_label = ttk.Label(self, text='Getting Quizzes...')
 		temp_label.grid()
@@ -356,8 +349,7 @@ class MainMenu(tk.Frame):
 		current_quiz_key = self.quiz_variable.get()
 		self.cur_quiz_id = self.quizzes[current_quiz_key]
 		self.quiz_collector = collectors.Quiz(quiz_id=self.cur_quiz_id, class_id=self.cur_course_id,
-		                                      url=self.controller.url, header=self.controller.headers,
-		                                      verify=self.controller.is_trusted_ssl)
+		                                      url=self.controller.url, header=self.controller.headers)
 		self.controller.cur_quiz = self.quiz_collector
 		self.controller.autoencoder_frame()
 
@@ -382,10 +374,6 @@ class GeneralSettings(tk.Frame):
 		# Both of these are reclassified later as tk.Entry() objects to allow for users to input Canvas API information
 		self.token_input = None
 		self.url_input = None
-
-		self.ssl_trusted_variable = None
-		self.ssl_trusted_drop_down = None
-		self.ssl_options = None
 
 		# These are both placeholders to take on the value of input values from token and url input objects
 		self.token = None
@@ -412,13 +400,12 @@ class GeneralSettings(tk.Frame):
 		api_target = "http://{}.instructure.com/api/v1/users/activity_stream".format(cur_url)
 		headers = {'Authorization': 'Bearer {}'.format(cur_token)}
 		try:
-			test = requests.put(api_target, headers=headers, verify=self.controller.is_trusted_ssl)
+			test = requests.put(api_target, headers=headers, verify=True)
 
 			if test.status_code == 200:
 				# If the response is positive the information is saved for storage in a token.json file
 				with open('{}/token.json'.format(temp_dir), 'w') as f:
-					json.dump({'token': cur_token, 'url': "http://" + cur_url + ".instructure.com",
-					           'trusted_ssl': self.controller.is_trusted_ssl}, f)
+					json.dump({'token': cur_token, 'url': "http://" + cur_url + ".instructure.com"}, f)
 
 				# Sets up the information so that the program can continue to run without having to reload the data
 				self.controller.url = "http://" + cur_url + ".instructure.com"
@@ -484,22 +471,14 @@ class TokenSelector(GeneralSettings):
 
 		self.token_input.grid(row=0, column=0, sticky='nsew'), self.url_input.grid(row=1, column=0, sticky='nsew')
 
-		self.ssl_trusted_variable = tk.StringVar(self)
-		self.ssl_options = {'Regular SSL': True, 'Zscaler or Similar Network Security': False}
-
-		self.ssl_trusted_drop_down = ttk.OptionMenu(self, self.ssl_trusted_variable, 'Regular SSL', *self.ssl_options)
-		self.ssl_trusted_drop_down.grid(sticky='nsew')
-
 		self.confirmed_button = ttk.Button(self, command=self.confirm_settings, width=20, text='Confirm Information!')
 		self.confirmed_button.grid(sticky='nsew')
 
 		self.error = ttk.Label(self, text="Sorry, either your URL or API key is incorrect!")
 
 	def confirm_settings(self):
+		self._confirm_token()
 		self.controller.change_frame('MainMenu')
-
-	def set_ssl(self, _):
-		self.controller.is_trusted_ssl = self.ssl_options[self.ssl_trusted_variable.get()]
 
 
 class SettingsMenu(GeneralSettings):
