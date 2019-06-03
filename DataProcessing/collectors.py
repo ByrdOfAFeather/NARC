@@ -26,9 +26,10 @@ class UserCollector:
 
 	def get_associated_courses(self):
 		api_target = r"{}/api/v1/courses?enrollment_state=active&per_page=50"
-		courses = requests.put(api_target.format(self.url), headers=self.header, verify=True)
+		courses = requests.get(api_target.format(self.url), headers=self.header, verify=True)
 		course_dict = {}
 
+		print(courses)
 		for courses in courses.json():
 			course_name = courses['name']
 			course_id = courses['id']
@@ -57,7 +58,7 @@ class Collector:
 		:return: A dictionary containing user ids linked to user names
 		"""
 		api_target = r'{}/api/v1/courses/{}/enrollments?per_page=50'
-		enrollment = requests.put(api_target.format(self.url, self.class_id), headers=self.header, verify=True)
+		enrollment = requests.get(api_target.format(self.url, self.class_id), headers=self.header, verify=True)
 
 		with open('{}/{}.json'.format(output_folder, output_file_name), 'w') as f:
 			json.dump(enrollment.json(), f)
@@ -72,7 +73,7 @@ class Collector:
 
 	def get_course_modules(self):
 		api_target = "{}/api/v1/courses/{}/modules?per_page=50"
-		module = requests.put(api_target.format(self.url, self.class_id), headers=self.header, verify=True)
+		module = requests.get(api_target.format(self.url, self.class_id), headers=self.header, verify=True)
 		module_dict = {}
 		for modules in module.json():
 			if modules['published']:
@@ -125,7 +126,7 @@ class Module(Collector):
 		:return: A Dictionary containing specific references to notes and quiz sections as well as overall results
 		"""
 		api_target = r"{}/api/v1/courses/{}/modules/{}/items"
-		module = requests.put(api_target.format(self.url, self.class_id, self.module_id),
+		module = requests.get(api_target.format(self.url, self.class_id, self.module_id),
 			headers=self.header, verify=True)
 		notes = self._get_module_notes(module.json())
 		quizzes = self._get_module_quizzes(module.json())
@@ -139,7 +140,7 @@ class Module(Collector):
 		for students in self.get_class_users('temp', 'temp'):
 			# url = r'{}/api/v1/courses/{}/analytics/users/{}/activity'
 			api_target = r'{}/api/v1/users/{}/page_views'
-			response = requests.put(api_target.format(self.url, students), headers=self.header, verify=True)
+			response = requests.get(api_target.format(self.url, students), headers=self.header, verify=True)
 			# print(response.json())
 
 
@@ -156,7 +157,7 @@ class Quiz(Collector):
 		:return: dictionary {question: question_text, question order, question answers}
 		"""
 		api_target = r'{}/api/v1/courses/{}/quizzes/{}/questions?per_page=100'
-		quiz_response = requests.put(api_target.format(self.url, self.class_id, self.quiz_id),
+		quiz_response = requests.get(api_target.format(self.url, self.class_id, self.quiz_id),
 			headers=self.header, verify=True)
 
 		quiz_question_id_dict = {}
@@ -175,7 +176,7 @@ class Quiz(Collector):
 		:return: list [(submission id, user id)]
 		"""
 		api_target = r'{}/api/v1/courses/{}/quizzes/{}/submissions?per_page=100'
-		quiz = requests.put(url=api_target.format(self.url, self.class_id, self.quiz_id),
+		quiz = requests.get(url=api_target.format(self.url, self.class_id, self.quiz_id),
 			headers=self.header, verify=True)
 
 		submission_list = []
@@ -324,7 +325,7 @@ class Quiz(Collector):
 		# Builds a dictionary containing events linked to student canvas ids
 		quiz_events = {}
 		for submission_id, user_id in self.submissions[0]:
-			events = requests.put(api_target.format(self.url, self.class_id, self.quiz_id, submission_id),
+			events = requests.get(api_target.format(self.url, self.class_id, self.quiz_id, submission_id),
 			                      headers=self.header, verify=True)
 			quiz_events[user_id] = events.json()
 
@@ -350,7 +351,7 @@ class Discussion(Collector):
 				users linked to their posts
 		"""
 		api_target = '{}/api/v1/courses/{}/discussion_topics/{}/view'
-		r = requests.put(api_target.format(self.url, self.class_id, self.discussion_id),
+		r = requests.get(api_target.format(self.url, self.class_id, self.discussion_id),
 			headers=self.header, verify=True)
 
 		with open('{}/{}.json'.format(output_folder, output_file_name), 'w') as f:

@@ -48,7 +48,7 @@ class MainBackEnd(tk.Tk):
 		# AESTHETIC
 		self.geometry("300x300")
 		self.title("NARC")
-		self.iconbitmap(resource_path(r'temp_logo.ico'))
+		# self.iconbitmap(resource_path(r'temp_logo.ico'))
 
 		# Sets API defaults to be reassigned to either the stored token or a new one given by the user
 		self.url = None
@@ -397,11 +397,11 @@ class GeneralSettings(tk.Frame):
 		cur_url = self.url_input.get()
 
 		# Sets up the target url for the api and token information
-		api_target = "http://{}.instructure.com/api/v1/users/activity_stream".format(cur_url)
+		api_target = "http://{}.instructure.com/api/v1/courses?enrollment_state=active&per_page=50".format(cur_url)
 		headers = {'Authorization': 'Bearer {}'.format(cur_token)}
 		try:
-			test = requests.put(api_target, headers=headers, verify=True)
-
+			test = requests.get(api_target, headers=headers, verify=True)
+			print(test.status_code)
 			if test.status_code == 200:
 				# If the response is positive the information is saved for storage in a token.json file
 				with open('{}/token.json'.format(temp_dir), 'w') as f:

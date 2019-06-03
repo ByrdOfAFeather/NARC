@@ -9,3 +9,4 @@ if os.path.exists(r'..\.\temp/eula.txt'):
 is_token = os.path.exists(r'..\.\temp/data/token.json')
 main_back_end = displayers.MainBackEnd(is_token=is_token, eula_accepted=eula)
 main_back_end.mainloop()
+
