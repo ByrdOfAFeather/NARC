@@ -1,0 +1,26 @@
+#login-btn {
+    /* Coloring */
+    background: #0e8e0e;
+    color: white;
+    border-radius: 25px;
+    width: 200px;
+    height: 200px;
+    border: none;
+
+    /* Centering */
+    -webkit-transform: translate(-50%,-50%);
+    transform: translate(-50%,-50%);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+
+    /* Font Work */
+    font-family: 'Consolas', 'Deja Vu Sans Mono', 'Bitstream Vera Sans Mono', monospace;
+    font-size: 2em;
+
+}
+
+#login-btn:hover {
+    background: #0e680e;
+    cursor: pointer;
+}
