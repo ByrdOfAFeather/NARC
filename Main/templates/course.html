@@ -6,14 +6,19 @@
             url: "{% url 'canvaswrapper:modules-get' %}",
             method: "GET",
             dataType: "json",
-            data: {"course_id": {{ course_id }},
+            data: {"course_id": {{ course_id }} },
             success: function(results) {
-                console.log(results)
+                loadModules(results["success"]["data"].splice(2, -1))
             },
             error: function(results) {
                 console.log("error occurred");
                 console.log(results);
-            }
-        })
+            },
+         });
+
+
+        function loadModules(modules) {
+
+        }
     </script>
 {% endblock %}

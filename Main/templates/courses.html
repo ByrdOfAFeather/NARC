@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'progressbar.html' %}
 {% block title %}<title>Courses</title>{% endblock %}
 {% block css %}
     {% load static %}
@@ -8,14 +8,7 @@
     <script type="text/javascript">
         let progress = 0;
         let idList = [];
-        $(function(){
-                $('#progressbar').progressbar({
-                    change: function() {
-                        $("#progresslabel").text( "Loading: " + $('#progressbar').progressbar( "value" ) + "%" );
-                    },
-                    value: progress
-                });
-        });
+
 
         $.ajax({
             url: "{% url 'canvaswrapper:courses-get' %}",
@@ -69,7 +62,5 @@
             progressBar.hide();
         }
     </script>
-
-    <div id="progressbar"><div id="progresslabel">Loading Courses</div></div>
     <div id="courses"></div>
 {% endblock %}
