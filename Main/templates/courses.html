@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block title %}<title>Courses</title>{% endblock %}
+{% block styles %}
+    {% load static %}
+        <link rel="stylesheet" types="text/css" href="{% static 'css/styles.css' %}">
+{% endblock %}
+{% block body %}
+    <script type="text/javascript">
+        let progress = 0;
+        $(function(){
+                $('#progressbar').progressbar({
+                    change: function() {
+                        $("#progresslabel").text( "Loading: " + $('#progressbar').progressbar( "value" ) + "%" );
+                    },
+                    value: progress
+                });
+        });
+
+        $.ajax({
+            url: "{% url 'canvaswrapper:courses-get' %}",
+            method: 'GET',
+            success: function(results) {
+                console.log("Courses received!");
+                loadCourses(JSON.parse(results["success"]["data"].slice(2, -1)));
+            },
+            error: function(results) {
+                console.log(results)
+            }
+        });
+
+        function courseGen(name, image="") {
+            if (image) {
+
+            }
+
+            else {
+                let newCourse = document.createElement("div");
+
+            }
+        }
+
+        function loadCourses(courses) {
+            let courseLength = courses.length;
+
+            for (let i = 0; i < courseLength; i++) {
+                console.log(courses[i]);
+                let currentCourse = courses[i];
+
+                $('#progressbar').progressbar("value", progress + ((1/courseLength) * 100));
+            }
+            $('#progressbar').hide();
+        }
+    </script>
+
+    <div id="progressbar"><div id="progresslabel">Loading Courses</div></div>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}<title>NARC</title> {% endblock %}
+{% load static %}
+
+{% block scripts %}
+    <script type="text/javascript" src="{% static 'js/canvasRQ.js' %}"></script>
+{% endblock %}
+{% block css %}
+    <link rel="stylesheet" types="text/css" href="{% static 'css/styles.css' %}">
+{% endblock %}
+
+{% block body %}
+    {% include 'collectors.html' %}
+    <button id="login-btn" onclick='getAPIInfo();'>Login</button>
+    {% if logged_in %}
+        <p>
+            It appears you have already logged in! If you want to login with a different token click the button below,
+            otherwise, you can <a href="{% url 'main:courses-view' %}">click me</a> to go to your homepage!</p>
+    {% endif %}
+{% endblock %}

@@ -7,13 +7,13 @@ function getAPIInfo() {
     if (token) {
         console.log("Testing token");
         $.ajax({
-            url: "http://127.0.0.1:5000/api/tokenTest",
+            url: "{% url 'CanvasWrapper:test-token' %}",
             method: "GET",
             dataType: "json",
             data: {"token": token},
             success: function (results) {
                 console.log("LOGGING IN......");
-                window.location.replace("http://127.0.0.1:5000/courseview")
+                window.location.replace("http://127.0.0.1:8000/courseview")
             },
             error: function (error) {
                 console.log(error);

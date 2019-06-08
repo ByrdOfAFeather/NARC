@@ -24,3 +24,12 @@
     background: #0e680e;
     cursor: pointer;
 }
+
+/* https://jqueryui.com/progressbar/#label */
+#progresslabel {
+    position: absolute;
+    left: 50%;
+    top: 4px;
+    font-weight: bold;
+    text-shadow: 1px 1px 0 #fff;
+}

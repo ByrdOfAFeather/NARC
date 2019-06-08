@@ -1,0 +1,27 @@
+{% block collectors %}
+<script type="text/javascript">
+    function getAPIInfo() {
+        // TODO: Add URL Prompt
+        console.log("Getting user API Key");
+        let token = window.prompt("Insert API Token Below!", "example: 1234567910");
+        if (token) {
+            console.log("Testing token");
+            $.ajax({
+                url: "{% url 'canvaswrapper:test-token' %}",
+                method: "GET",
+                dataType: "json",
+                data: {"token": token},
+                success: function (results) {
+                    window.location.replace("{% url 'main:courses-view' %}")
+                },
+                error: function (error) {
+                    alert("Token not valid! Please generate a new one!");
+                }
+            })
+        }
+        else {
+            console.log("No token was provided, exiting!");
+        }
+    }
+</script>
+{% endblock %}
