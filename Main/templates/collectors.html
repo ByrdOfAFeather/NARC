@@ -12,7 +12,7 @@
                 dataType: "json",
                 data: {"token": token},
                 success: function (results) {
-                    window.location.replace("{% url 'main:courses-view' %}")
+                    window.location.replace("{% url 'mainpages:courses-view' %}")
                 },
                 error: function (error) {
                     alert("Token not valid! Please generate a new one!");

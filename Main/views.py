@@ -1,5 +1,4 @@
 from django.shortcuts import render
-from django.http import HttpResponse
 
 
 def index(request):
@@ -9,5 +8,8 @@ def index(request):
 
 
 def courses(request):
-	header = request.COOKIES.get('header')
-	return render(request, "courses.html", {"header": header})
+	return render(request, "courses.html")
+
+
+def course(request, course_id):
+	return render(request, "course.html", {"course_id": course_id})

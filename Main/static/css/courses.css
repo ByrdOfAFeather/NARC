@@ -1,0 +1,25 @@
+/* Get rid of inner text decoration */
+.course-link {
+    text-decoration: none;
+}
+
+/* Get a nice looking bounding box and display it in-line */
+.course {
+    border: 2px solid black;
+    border-radius: 20px;
+    text-align: center;
+    width: 200px;
+    height: 200px;
+    display: inline-grid;
+    margin: 10px;
+    background-color: rgb(57, 75, 88);
+}
+
+/* Center text and color it */
+.course p {
+    color: white;
+    height: inherit;
+    top: 23%;
+    position: relative;
+    font-size: 1.5em;
+}

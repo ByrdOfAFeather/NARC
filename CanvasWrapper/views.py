@@ -21,21 +21,47 @@ def test_token(request):
 			return response
 
 
+def content_helper(request):
+	if request.status_code == 200:
+		response = JsonResponse({"success": {"data": str(request.content)}})
+		response.status_code = 200
+		return response
+	else:
+		response = JsonResponse({"error": "unknown error occured! (Maybe token expired?)"})
+		response.status_code = request.status_code
+		return response
+
+
 def get_courses(request):
 	header = request.COOKIES.get("header", "")
 	if header:
 		header = header.replace("'", "\"")
 		header = json.loads(header)
-		courses = requests.get("http://canvas.instructure.com/api/v1/courses",
-		                       headers=header)
-		if courses.status_code == 200:
-			response = JsonResponse({"success": {"data": str(courses.content)}})
-			response.status_code = 200
-			return response
-		else:
-			response = JsonResponse({"error": "unknown error occured! (Maybe token expired?)"})
-			response.status_code = courses.status_code
-			return response
+		courses = requests.get(
+			"http://canvas.instructure.com/api/v1/courses?enrollment_state=active&per_page=50",
+			headers=header)
+
+		return content_helper(courses)
+
+	else:
+		response = JsonResponse({"error": "could not find cookie"})
+		response.status_code = 401
+		return response
+
+
+def get_modules(request):
+	header = request.COOKIES.get("header", "")
+	url = request.COOKIES.get("url", "header")
+	course_id = request.COOKIES.get("course_id")
+	if header:
+		header = header.replace("'", "\"")
+		header = json.loads(header)
+		modules = requests.get(
+			"{}/api/v1/courses/{}/modules?per_page=50".format(url, course_id),
+			headers=header)
+
+		return content_helper(modules)
+
 	else:
 		response = JsonResponse({"error": "could not find cookie"})
 		response.status_code = 401

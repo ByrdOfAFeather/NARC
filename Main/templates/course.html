@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block title %}<title>Course View</title>{% endblock %}
+{% block body %}
+    <script type="text/javascript">
+        $.ajax({
+            url: "{% url 'canvaswrapper:modules-get' %}",
+            method: "GET",
+            dataType: "json",
+            data: {"course_id": {{ course_id }},
+            success: function(results) {
+                console.log(results)
+            },
+            error: function(results) {
+                console.log("error occurred");
+                console.log(results);
+            }
+        })
+    </script>
+{% endblock %}
