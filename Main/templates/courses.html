@@ -1,4 +1,4 @@
-{% extends 'progressbar.html' %}
+{% extends 'displayers.html' %}
 {% block title %}<title>Courses</title>{% endblock %}
 {% block css %}
     {% load static %}
@@ -6,60 +6,20 @@
 {% endblock %}
 {% block body %}
     <script type="text/javascript">
-        let progress = 0;
-        let idList = [];
-
-
         $.ajax({
             url: "{% url 'canvaswrapper:courses-get' %}",
             method: 'GET',
             success: function(results) {
                 console.log("Courses received!");
-                loadCourses(JSON.parse(results["success"]["data"].slice(2, -1)));
+                loadGeneric(JSON.parse(results["success"]["data"].slice(2, -1)), "course");
             },
             error: function(results) {
                 console.log(results);
             }
         });
 
-        function courseGen(name, id) {
-            let newCourseLink = document.createElement("a");
-            newCourseLink.href = "{% url 'mainpages:course' 1234 %}".replace("1234", id.toString());
-            newCourseLink.style.opacity = "0";
-            newCourseLink.className = "course-link";
-            let newCourse = document.createElement("div");
-            newCourse.className = "course";
-            let newCourseName = document.createElement("p");
-            newCourseName.className = "course-name";
-            newCourseName.innerText = name;
-            newCourse.appendChild(newCourseName);
-            newCourseLink.appendChild(newCourse);
-            return newCourseLink;
-        }
-
-
-        function animate(courseDiv, index) {
-            console.log("This is getting triggered");
-            courseDiv.style.opacity = (parseFloat(courseDiv.style.opacity) + .01).toString();
-            if (parseFloat(courseDiv.style.opacity) === 1) {
-                clearInterval(idList[index]);
-            }
-        }
-
-
-        function loadCourses(courses) {
-            let courseLength = courses.length;
-            let progressBar = $('#progressbar');
-            idList = [];
-            for (let i = 0; i < courseLength; i++) {
-                console.log(courses[i]);
-                let currentCourse = courses[i];
-                let courseDiv = courseGen(currentCourse["name"], currentCourse["id"]);
-                $("#courses").append(courseDiv);
-                progressBar.progressbar("value", progress + ((1/courseLength) * 100));
-                idList.push(setInterval(function() {animate(courseDiv, i)}, 15));
-            }
-            progressBar.hide();
+        function linkGen(courseID) {
+            return "{% url 'mainpages:course' 1234 %}".replace("1234", courseID);
         }
     </script>
     <div id="courses"></div>

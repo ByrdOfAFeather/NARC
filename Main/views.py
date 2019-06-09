@@ -13,3 +13,7 @@ def courses(request):
 
 def course(request, course_id):
 	return render(request, "course.html", {"course_id": course_id})
+
+
+def module(request, course_id, module_id):
+	return render(request, "course.html", {"course_id": course_id})

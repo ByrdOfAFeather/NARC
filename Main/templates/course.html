@@ -1,5 +1,9 @@
-{% extends 'base.html' %}
+{% extends 'displayers.html' %}
 {% block title %}<title>Course View</title>{% endblock %}
+{% block css %}
+    {% load static %}
+        <link rel="stylesheet" type="text/css" href="{% static 'css/course.css' %}">
+{% endblock %}
 {% block body %}
     <script type="text/javascript">
         $.ajax({
@@ -8,7 +12,7 @@
             dataType: "json",
             data: {"course_id": {{ course_id }} },
             success: function(results) {
-                loadModules(results["success"]["data"].splice(2, -1))
+                loadGeneric(JSON.parse(results["success"]["data"].slice(2, -1)), "module")
             },
             error: function(results) {
                 console.log("error occurred");
@@ -16,9 +20,9 @@
             },
          });
 
-
-        function loadModules(modules) {
-
+        function linkGen(moduleID) {
+            return "{% url 'mainpages:module' 1234 5678%}".replace("1234", {{ course_id }}).replace("5678", moduleID);
         }
     </script>
+    <div id="modules"></div>
 {% endblock %}
