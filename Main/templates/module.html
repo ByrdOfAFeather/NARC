@@ -1,0 +1,95 @@
+{% extends 'displayers.html' %}
+{% block title %}<title>Module View</title>{% endblock %}
+{% block css %}
+    {% load static %}
+        <link rel="stylesheet" type="text/css" href="{% static 'css/module.css' %}">
+{% endblock %}
+{% block body %}
+    <script type="text/javascript">
+        $.ajax({
+            url: "{% url 'canvaswrapper:quizzes-get' %}",
+            method: "GET",
+            dataType: "json",
+            data: {"course_id": {{ course_id }}, "module_id": {{ module_id }} },
+            success: function(results) {
+                console.log(results["success"]["data"].replace("'","\""));
+                if (results["success"]["data"] === "[]") {
+                    let error = document.createElement('p');
+                    error.innerText = "No Quizzes Found! Make sure you are in the right area!";
+                    document.body.appendChild(error);
+                    $('#progressbar').hide();
+                }
+                else {
+                    let quizData = JSON.parse(results["success"]["data"].replace(/'/g, "\""));
+                    loadGeneric(quizData, "quiz");
+                    loadQuizData(quizData);
+                }
+            },
+            error: function(results) {
+                // TODO: Fail Case
+                console.log("error occurred");
+                console.log(results);
+            },
+         });
+
+        function loadQuizData(quizData) {
+            let idList = [];
+            for (let i = 0; i < quizData.length; i++) {
+                let curQuiz = quizData[i];
+                $.ajax({
+                    url: "{% url 'canvaswrapper:quiz-get-info' 1234 %}".replace(1234, curQuiz.id),
+                    method: "GET",
+                    dataType: "json",
+                    data: {"course_id": {{ course_id }}},
+                    success: function(results) {
+                        results = JSON.parse(results["success"]["data"]);
+                        let noResults = results["quiz_statistics"][i] === undefined;
+                        let quizDiv = document.getElementById("quiz-" + i);
+                        let averageScore = document.createElement("p");
+                        let average;
+                        if (noResults) {
+                            average = "No Scored Submissions!";
+                        }
+                        else {
+                            average = "Average Score: " + results["quiz_statistics"][i]["submission_statistics"]["score_average"];
+                        }
+                        averageScore.innerText = average;
+                        averageScore.style.opacity = "0";
+                        quizDiv.appendChild(averageScore);
+                        idList.push(setInterval(function () {
+                            fadeIn(averageScore, i, idList);
+                        }, 15));
+
+                        if (noResults) {
+                            console.log("Nothing To Do!");
+                        }
+                        else {
+                            let noSub = document.createElement("p");
+                            noSub.innerText = "Submissions: " + results["quiz_statistics"][i]["submission_statistics"]["unique_count"];
+                            noSub.style.opacity = "0";
+                            quizDiv.appendChild(noSub);
+                            idList.push(setInterval(function () {
+                                fadeIn(noSub, i, idList);
+                            }, 15));
+                        }
+
+                    },
+                    error: function(results) {
+                        // TODO: Fail Case
+                        console.log(results)
+                    }
+                });
+            }
+
+        }
+
+        function linkGen(quizID) {
+            return "{% url 'mainpages:quiz' 1234 5678 9123%}"
+                .replace("1234", {{ course_id }})
+                .replace("5678", {{ module_id }})
+                .replace("9123", quizID );
+        }
+
+    </script>
+    <div id="quizzes"></div>
+{% endblock %}
