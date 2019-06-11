@@ -16,4 +16,8 @@ def course(request, course_id):
 
 
 def module(request, course_id, module_id):
-	return render(request, "course.html", {"course_id": course_id})
+	return render(request, "module.html", {"course_id": course_id, "module_id": module_id})
+
+
+def quiz(request, course_id, module_id, quiz_id):
+	return render(request, "quiz.html", {"course_id": course_id, "module_id": module_id, "quiz_id": quiz_id})

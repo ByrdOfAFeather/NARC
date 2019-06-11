@@ -2,17 +2,17 @@
 
 {% block extras %}
     <script type="text/javascript">
-    let progress = 0;
-    $(function(){
-                $('#progressbar').progressbar({
-                    change: function() {
-                        $("#progresslabel").text( "Loading: " + $('#progressbar').progressbar( "value" ) + "%" );
-                    },
-                    value: progress
-                });
-        });
+    {#let progress = 0;#}
+    {#$(function(){#}
+    {#            $('#progressbar').progressbar({#}
+    {#                change: function() {#}
+    {#                    $("#progresslabel").text( "Loading: " + $('#progressbar').progressbar( "value" ) + "%" );#}
+    {#                },#}
+    {#                value: progress#}
+    {#            });#}
+    {#    });#}
     </script>
     {% block generic-functions %}
     {% endblock %}
-    <div id="progressbar"><div id="progresslabel">Loading Courses</div></div>
+{#    <div id="progressbar"><div id="progresslabel">Loading Courses</div></div>#}
 {% endblock %}

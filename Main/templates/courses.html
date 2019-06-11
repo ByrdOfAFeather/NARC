@@ -11,9 +11,10 @@
             method: 'GET',
             success: function(results) {
                 console.log("Courses received!");
-                loadGeneric(JSON.parse(results["success"]["data"].slice(2, -1)), "course");
+                loadGeneric(JSON.parse(results["success"]["data"]), "course");
             },
             error: function(results) {
+                // TODO: Fail Case
                 console.log(results);
             }
         });

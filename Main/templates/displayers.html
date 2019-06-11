@@ -1,14 +1,14 @@
 {% extends 'progressbar.html' %}
 {% block generic-functions %}
     <script type="text/javascript">
-        let idList = [];
-        function genericGen(name, link, genericName) {
+        function genericGen(name, link, genericName, index) {
             let genericGenLink = document.createElement("a");
             genericGenLink.href = link;
             genericGenLink.style.opacity = "0";
             genericGenLink.className = genericName + "-link";
             let newGeneric = document.createElement("div");
             newGeneric.className = genericName;
+            newGeneric.id = genericName + "-" + index;
             let newGenericName = document.createElement("p");
             newGenericName.className = genericName + "-name";
             newGenericName.innerText = name;
@@ -18,27 +18,42 @@
         }
 
 
-        function fadeIn(genericDiv, index) {
-            genericDiv.style.opacity = (parseFloat(genericDiv.style.opacity) + .01).toString();
+        function fadeIn(genericDiv, index, localList) {
+            genericDiv.style.opacity = (parseFloat(genericDiv.style.opacity) + .02).toString();
             if (parseFloat(genericDiv.style.opacity) === 1) {
-                clearInterval(idList[index]);
+                clearInterval(localList[index]);
             }
         }
 
 
         function loadGeneric(generics, genericName) {
             let courseLength = generics.length;
-            let progressBar = $('#progressbar');
-            idList = [];
-            for (let i = 0; i < courseLength; i++) {
-                console.log(generics[i]);
-                let currentGeneric = generics[i];
-                let genericDiv = genericGen(currentGeneric["name"], linkGen(currentGeneric["id"]), genericName);
-                $("#" + genericName + "s").append(genericDiv);
-                progressBar.progressbar("value", progress + ((1/courseLength) * 100));
-                idList.push(setInterval(function() {fadeIn(genericDiv, i)}, 15));
+            {#let progressBar = $('#progressbar');#}
+            let idList = [];
+            if (courseLength === 0) {
+                {#progressBar.hide();#}
+                let error = document.createElement('p');
+                error.innerText = "No " + genericName + "s were found! make sure you are in the right place!";
+                document.body.appendChild(error);
+            } else {
+                for (let i = 0; i < courseLength; i++) {
+                    console.log(generics[i]);
+                    let currentGeneric = generics[i];
+                    let genericDiv = genericGen(
+                        currentGeneric["name"].replace("\\u0026", "&"),
+                        linkGen(currentGeneric["id"]),
+                        genericName,
+                        i
+                    );
+                    if (genericName === "quiz") { $("#quizzes").append(genericDiv);}
+                    $("#" + genericName + "s").append(genericDiv);
+                    {#progressBar.progressbar("value", progress + ((1 / courseLength) * 100));#}
+                    idList.push(setInterval(function () {
+                        fadeIn(genericDiv, i, idList);
+                    }, 15));
+                }
+                {#progressBar.hide();#}
             }
-            progressBar.hide();
         }
     </script>
 {% endblock %}

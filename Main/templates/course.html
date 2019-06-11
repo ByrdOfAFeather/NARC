@@ -12,9 +12,10 @@
             dataType: "json",
             data: {"course_id": {{ course_id }} },
             success: function(results) {
-                loadGeneric(JSON.parse(results["success"]["data"].slice(2, -1)), "module")
+                loadGeneric(JSON.parse(results["success"]["data"]), "module")
             },
             error: function(results) {
+                // TODO: Fail Case
                 console.log("error occurred");
                 console.log(results);
             },
