@@ -1,5 +1,10 @@
 {% extends 'displayers.html' %}
 {% block title %}<title>Quiz View</title>{% endblock %}
+{% block scripts %}
+    {% load static %}
+        <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.0.0/dist/tf.min.js"></script>
+        <script src="{% static 'js/predictors.js' %}"></script>
+{% endblock %}
 {% block css %}
     {% load static %}
         <link rel="stylesheet" type="text/css" href="{% static 'css/quiz.css' %}">
@@ -7,6 +12,11 @@
 {% block body %}
     <script type="text/javascript">
         let idDict = {};
+        let dataSet = {};
+        let eventSet = {};
+
+        // TODO: Add warning when the button lock is true and the button is pressed
+        let buttonLock = true;
         idDict.totalPageLeaveNo = setInterval(function() {
             randomChangeNumber(document.getElementById("total-page-leavers-no"));
         }, 50);
@@ -19,6 +29,7 @@
         idDict.stdAbove = setInterval(function () {
             randomChangeNumber(document.getElementById("std-above-no"));
         }, 50);
+
 
         $.ajax({
             "url": "{% url 'canvaswrapper:quiz-get-stats' %}",
@@ -35,6 +46,7 @@
             }
         });
 
+
         function randomChangeNumber(element, percent=false) {
             if (percent) {
                 element.innerText = Math.floor(Math.random() * Math.floor(100)) + "%";
@@ -43,6 +55,7 @@
                 element.innerText = Math.floor(Math.random() * Math.floor(100));
             }
         }
+
 
         function genericP(text, parent) {
             let newGenericP = document.createElement("p");
@@ -60,37 +73,40 @@
             document.getElementById("std-no").innerText = Math.round(results["std"] * 100) + "%";
 
             clearInterval(idDict.stdAbove);
-            document.getElementById("std-above-no").innerText = results["no_above_2_std"];
+            document.getElementById("std-above-no").innerText = results["no_above_2_std"] === null ? 0 : results["no_above_2_std"];
             let twoAbove = document.createElement("b");
             twoAbove.innerText = "(" + Math.round(results["std"] * 200) + "%)";
             let stdAboveDesc = document.getElementById("std-above-desc");
             stdAboveDesc.appendChild(document.createElement("br"));
             document.getElementById("std-above-desc").appendChild(twoAbove);
 
-
-            //TODO Indicate that more statistics are loading.
-            getMoreStatistics();
         }
 
-        function getMoreStatistics() {
-            $.ajax({
-                url: "{% url 'canvaswrapper:quiz-get-submissions'%}",
-                method: "GET",
-                dataType: "json",
-                data: {"course_id": {{ course_id }}, "quiz_id": {{ quiz_id }}},
-                success: function(results) {
-                    console.log(results);
-                    loadMoreStatistics(results["success"]["data"]);
-                },
-                error: function(results) {
-                    // TODO: Fail Case
-                    console.log(results);
-                }
-            });
-        }
+
+        $.ajax({
+            url: "{% url 'canvaswrapper:quiz-get-submissions'%}",
+            method: "GET",
+            dataType: "json",
+            data: {"course_id": {{ course_id }}, "quiz_id": {{ quiz_id }}},
+            success: function(results) {
+                console.log(results);
+                loadMoreStatistics(results["success"]["data"]);
+            },
+            error: function(results) {
+                // TODO: Fail Case
+                console.log(results);
+            }
+        });
+
+
 
         function loadMoreStatistics(results) {
+            // TODO: Assign globals here
+            buttonLock = false;
+            document.getElementById("start-button").style.opacity = "1";
 
+            dataSet = results["user_to_page_leaves"];
+            eventSet = results["user_to_events"];
             clearInterval(idDict.totalPageLeaveNo);
             document.getElementById("total-page-leaves-no").innerText = results["page_leaves"];
 
@@ -98,9 +114,79 @@
             document.getElementById("total-page-leavers-no").innerText = results["unique_page_leavers"];
         }
 
+
+        function testFunc() {
+            if (buttonLock) {
+                return;
+            }
+            else {
+                parseData();
+            }
+        }
+
+
+        function buildAverageTimeBetweenQuestions(userData, eventData) {
+            let user_ids = Object.keys(userData);
+            let currentEvents = null;
+            let currentId = null;
+            let prevTime = null;
+            let curTime = null;
+            let localStart = null;
+            let sum = 0;
+            let denominator = 0;
+            for (let i =0; i<user_ids.length; i++) {
+                currentId = user_ids[i];
+                currentEvents = eventData[currentId]["quiz_submission_events"];
+                prevTime = null; curTime = null; sum = 0; denominator = 0; localStart = null;
+
+                for (let i = 0; i < currentEvents.length; i++) {
+                    if (currentEvents[i]["event_type"] === "session_started") {
+                        localStart = new Date(currentEvents[i]["created_at"]);
+                    }
+
+                    else if (currentEvents[i]["event_type"] !== "question_answered") {
+                        continue;
+                    }
+
+                    else {
+                        if (prevTime == null) {
+                            prevTime = new Date(currentEvents[i]["created_at"]);
+                        }
+                        else {
+                            curTime = new Date(currentEvents[i]["created_at"]);
+                            sum += Math.abs(curTime - prevTime);
+                            prevTime = curTime;
+                            denominator += 1;
+                        }
+                    }
+                }
+
+                if (denominator === 0 && prevTime !== null) {
+                    // This is the case where there is only one question or the user only answered one
+                    userData[currentId]["average_time_between_question"] = prevTime - localStart;
+                }
+                else if (denominator === 0) {
+                    // This is the case where either there are no questions or the user did not answer any
+                    // The user is deleted as the user cannot cheat if they didn't answer a question!
+                    delete userData[currentId];
+                }
+                else {
+                    userData[currentId]["average_time_between_question"] = sum / denominator;
+                }
+            }
+
+        }
+
+
+        function parseData() {
+            buildAverageTimeBetweenQuestions(dataSet, eventSet);
+
+        }
+
     </script>
 
-    <button>Check For Cheaters</button>
+    <!-- TODO: Rename function  -->
+    <button onclick="testFunc();" id="start-button">Check For Cheaters</button>
     <div id="title"></div>
     <div id="submissions"></div>
     <div id="statistics">

@@ -31,3 +31,7 @@
     font-size: 2em;
     font-family: Avantgarde, TeX Gyre Adventor, URW Gothic L, sans-serif;
 }
+
+#start-button {
+    opacity: .5;
+}

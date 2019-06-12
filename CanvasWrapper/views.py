@@ -120,9 +120,9 @@ def get_quiz_info(request, quiz_id):
 
 
 def find_std_count(std, scores, start_index):
-	print(start_index)
-	print(len(scores))
+	# TODO: Fix (Dict is not ordered so this does not work
 	unique_scores = list(scores.keys())
+	print(scores)
 	try:
 		test_score = unique_scores[start_index]
 	except IndexError:
@@ -141,7 +141,6 @@ def get_quiz_stats(request):
 	header = request.COOKIES.get("header", "")
 	course_id = request.GET.get("course_id", "")
 	quiz_id = request.GET.get("quiz_id", "")
-	print("THIS IS HEADER " + header)
 	if header:
 		header = header.replace("'", "\"")
 		header = json.loads(header)
@@ -156,9 +155,9 @@ def get_quiz_stats(request):
 
 			# Fins the standard deviation
 			return_json["std"] = quiz_stats["submission_statistics"]["score_stdev"]
+			return_json["std"] = return_json["std"] / quiz_stats["points_possible"]
 			# Finds the number of students scoring two standard deviations above the mean
 			scores = quiz_stats["submission_statistics"]["scores"]
-			print(scores)
 			return_json["no_above_2_std"] = find_std_count(return_json["std"] * 200, scores, floor(len(scores)/2) - 1)
 
 			response = JsonResponse({"success": {"data": json.dumps(return_json)}})
@@ -194,7 +193,7 @@ def get_quiz_submissions(request):
 			user_id = submissions["user_id"]
 			submission_id = submissions["id"]
 			local_page_leaves = 0
-			events = requests.get(link + "/{}/events".format(submission_id),
+			events = requests.get(link + "/{}/events?per_page=50000".format(submission_id),
 			                      headers=header)
 			if events.status_code == 200:
 				events_json = events.json()
@@ -203,7 +202,8 @@ def get_quiz_submissions(request):
 						total_page_leaves += 1
 						local_page_leaves += 1
 
-				users_to_page_leaves[user_id] = local_page_leaves
+				users_to_page_leaves[user_id] = {}
+				users_to_page_leaves[user_id]["page_leaves"] = local_page_leaves
 				if local_page_leaves > 0:
 					unique_page_leavers += 1
 				users_to_events[user_id] = events.json()
