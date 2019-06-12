@@ -14,6 +14,7 @@
         let idDict = {};
         let dataSet = {};
         let eventSet = {};
+        let submissionSet = {};
 
         // TODO: Add warning when the button lock is true and the button is pressed
         let buttonLock = true;
@@ -107,6 +108,7 @@
 
             dataSet = results["user_to_page_leaves"];
             eventSet = results["user_to_events"];
+            submissionSet = results["user_to_submissions"];
             clearInterval(idDict.totalPageLeaveNo);
             document.getElementById("total-page-leaves-no").innerText = results["page_leaves"];
 
@@ -125,8 +127,10 @@
         }
 
 
-        function buildAverageTimeBetweenQuestions(userData, eventData) {
-            let user_ids = Object.keys(userData);
+        function buildData(userData, eventData, buildRel=false) {
+            // TODO: This function is a bit odd since it uses local variables but is being called with globals
+            // so it's modifying globals in place, making the locals irrelevant
+            let userIds = Object.keys(userData);
             let currentEvents = null;
             let currentId = null;
             let prevTime = null;
@@ -134,10 +138,14 @@
             let localStart = null;
             let sum = 0;
             let denominator = 0;
-            for (let i =0; i<user_ids.length; i++) {
-                currentId = user_ids[i];
+            let overall_time_between_sum = 0;
+            let overall_time_taken_sum = 0;
+            let overall_page_leaves_sum = 0;
+            let overall_denominator = 0;
+            for (let i =0; i<userIds.length; i++) {
+                currentId = userIds[i];
                 currentEvents = eventData[currentId]["quiz_submission_events"];
-                prevTime = null; curTime = null; sum = 0; denominator = 0; localStart = null;
+                prevTime = null; curTime = null; sum = 0; denominator = 0; localStart = null; // I'm not 100% how memory management works in js, but I felt it was better not to create a new variable every iteration
 
                 for (let i = 0; i < currentEvents.length; i++) {
                     if (currentEvents[i]["event_type"] === "session_started") {
@@ -154,16 +162,26 @@
                         }
                         else {
                             curTime = new Date(currentEvents[i]["created_at"]);
-                            sum += Math.abs(curTime - prevTime);
+                            let curCalc = Math.abs(curTime - prevTime);
+                            sum += curCalc;
+                            overall_time_between_sum += curCalc;
                             prevTime = curTime;
                             denominator += 1;
+                            overall_denominator += 1;
                         }
                     }
                 }
 
                 if (denominator === 0 && prevTime !== null) {
                     // This is the case where there is only one question or the user only answered one
-                    userData[currentId]["average_time_between_question"] = prevTime - localStart;
+                    // So the time between questions is the time between submission and the first question answered.
+                    let curCalc = Math.abs(prevTime - localStart);
+                    userData[currentId]["average_time_between_questions"] = curCalc;
+                    overall_time_between_sum += curCalc;
+                    userData[currentId]["time_taken"] = submissionSet[currentId]["time_spent"];
+                    overall_time_taken_sum += submissionSet[currentId]["time_spent"];
+                    overall_page_leaves_sum += dataSet[currentId]["page_leaves"];
+                    overall_denominator += 1;
                 }
                 else if (denominator === 0) {
                     // This is the case where either there are no questions or the user did not answer any
@@ -171,16 +189,29 @@
                     delete userData[currentId];
                 }
                 else {
-                    userData[currentId]["average_time_between_question"] = sum / denominator;
+                    userData[currentId]["average_time_between_questions"] = sum / denominator;
+                    userData[currentId]["time_taken"] = submissionSet[currentId]["time_spent"];
+                    overall_time_taken_sum += submissionSet[currentId]["time_spent"];
+                    overall_page_leaves_sum += dataSet[currentId]["page_leaves"];
                 }
             }
 
+            let rel_average_time_between = overall_time_between_sum / overall_denominator;
+            let rel_time_taken = overall_time_taken_sum / overall_denominator;
+            let rel_page_leaves = overall_page_leaves_sum / overall_denominator;
+            if (buildRel) {
+                for (let i = 0; i < userIds.length; i++) {
+                    let currentUser = userData[userIds[i]];
+                    currentUser["rel_average_time_between_questions"] = currentUser["average_time_between_questions"] - rel_average_time_between;
+                    currentUser["rel_time_taken"] = currentUser["time_taken"] - rel_time_taken;
+                    currentUser["rel_page_leaves"] = currentUser["page_leaves"] - rel_page_leaves;
+                }
+            }
         }
 
 
         function parseData() {
-            buildAverageTimeBetweenQuestions(dataSet, eventSet);
-
+            buildData(dataSet, eventSet, true);
         }
 
     </script>

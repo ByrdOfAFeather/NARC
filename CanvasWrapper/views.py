@@ -186,12 +186,14 @@ def get_quiz_submissions(request):
 		)
 
 		users_to_events = {}
+		users_to_submissions = {}
 		users_to_page_leaves = {}
 		total_page_leaves = 0
 		unique_page_leavers = 0
 		for submissions in submissions.json()["quiz_submissions"]:
 			user_id = submissions["user_id"]
 			submission_id = submissions["id"]
+			users_to_submissions[user_id] = submissions
 			local_page_leaves = 0
 			events = requests.get(link + "/{}/events?per_page=50000".format(submission_id),
 			                      headers=header)
@@ -214,7 +216,8 @@ def get_quiz_submissions(request):
 		response = JsonResponse({"success": {"data": {"page_leaves": total_page_leaves,
 		                                              "user_to_events": users_to_events,
 		                                              "user_to_page_leaves": users_to_page_leaves,
-		                                              "unique_page_leavers": unique_page_leavers}}})
+		                                              "unique_page_leavers": unique_page_leavers,
+		                                              'user_to_submissions': users_to_submissions}}})
 		response.status_code = 200
 		return response
 	else:
