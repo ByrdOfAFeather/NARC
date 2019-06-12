@@ -6,6 +6,20 @@
 {% endblock %}
 {% block body %}
     <script type="text/javascript">
+        let idDict = {};
+        idDict.totalPageLeaveNo = setInterval(function() {
+            randomChangeNumber(document.getElementById("total-page-leavers-no"));
+        }, 50);
+        idDict.totalUniquePageLeaversNo = setInterval(function() {
+            randomChangeNumber(document.getElementById("total-page-leaves-no"));
+        }, 50);
+        idDict.std = setInterval(function () {
+            randomChangeNumber(document.getElementById("std-no"), true);
+        }, 50);
+        idDict.stdAbove = setInterval(function () {
+            randomChangeNumber(document.getElementById("std-above-no"));
+        }, 50);
+
         $.ajax({
             "url": "{% url 'canvaswrapper:quiz-get-stats' %}",
             "method": "GET",
@@ -21,45 +35,38 @@
             }
         });
 
-        function genericP(text, parent, id, idList) {
+        function randomChangeNumber(element, percent=false) {
+            if (percent) {
+                element.innerText = Math.floor(Math.random() * Math.floor(100)) + "%";
+            }
+            else {
+                element.innerText = Math.floor(Math.random() * Math.floor(100));
+            }
+        }
+
+        function genericP(text, parent) {
             let newGenericP = document.createElement("p");
             newGenericP.className = "generic-p";
-            newGenericP.id = id;
             newGenericP.innerText = text;
             newGenericP.style.opacity = "0";
             parent.appendChild(newGenericP);
-            idList.push(setInterval(function () {
-                fadeIn(newGenericP, id, idList);
-            }, 15));
             return newGenericP;
         }
 
 
         function loadStats(results) {
             results = JSON.parse(results["success"]["data"]);
-            let idList = [];
-            let statsDiv = document.getElementById("statistics");
+            clearInterval(idDict.std);
+            document.getElementById("std-no").innerText = Math.round(results["std"] * 100) + "%";
 
+            clearInterval(idDict.stdAbove);
+            document.getElementById("std-above-no").innerText = results["no_above_2_std"];
+            let twoAbove = document.createElement("b");
+            twoAbove.innerText = "(" + Math.round(results["std"] * 200) + "%)";
+            let stdAboveDesc = document.getElementById("std-above-desc");
+            stdAboveDesc.appendChild(document.createElement("br"));
+            document.getElementById("std-above-desc").appendChild(twoAbove);
 
-            let stdDiv = document.createElement("div");
-            stdDiv.id = "std-div";
-            statsDiv.appendChild(stdDiv);
-            let std = genericP(Math.round(results["std"] * 100), stdDiv, 0, idList);
-            std.className = "number";
-            let stdLabel = genericP("Standard Deviation", stdDiv, 1, idList);
-            stdLabel.className = "text";
-
-            let stdNoDiv = document.createElement("div");
-            stdNoDiv.id = "std-no-div";
-            statsDiv.appendChild(stdNoDiv);
-            let noAboveStd = genericP(results["no_above_2_std"], stdNoDiv, 2, idList);
-            noAboveStd.className = "number";
-            let noAboveStdLabel = genericP("Student(s) above or at 2 standard deviations", stdNoDiv, 3, idList);
-            noAboveStdLabel.className = "text";
-            noAboveStdLabel.appendChild(document.createElement("br"));
-            let twoAbove = document.createElement("p");
-            twoAbove.innerText = "(" + Math.round(results["std"] * 200) + ")";
-            noAboveStdLabel.appendChild(twoAbove);
 
             //TODO Indicate that more statistics are loading.
             getMoreStatistics();
@@ -83,32 +90,12 @@
         }
 
         function loadMoreStatistics(results) {
-            // TODO: Clean up code with better div generation
-            // In particular these variables are taking up a bunch of space I'm sure
-            // It would be better not to store them in js memory but for now
-            // I'm just going to keep working on loading the data into the page
-            console.log(results);
-            let idList = [];
-            let statsDiv = document.getElementById("statistics");
 
-            let totalPageLeavesDiv = document.createElement("div");
-            totalPageLeavesDiv.id = "total-page-leaves";
-            statsDiv.appendChild(totalPageLeavesDiv);
+            clearInterval(idDict.totalPageLeaveNo);
+            document.getElementById("total-page-leaves-no").innerText = results["page_leaves"];
 
-            let totalPageLeaveNo = genericP(results["page_leaves"], totalPageLeavesDiv, 0, idList);
-            totalPageLeaveNo.className = "number";
-            let totalPageLeave = genericP("Total Page Leave(s)", totalPageLeavesDiv, 1, idList);
-            totalPageLeave.className = "text";
-
-            let uniquePageLeavesDiv = document.createElement("div");
-            uniquePageLeavesDiv.id = "total-page-leavers";
-            statsDiv.appendChild(uniquePageLeavesDiv);
-
-            let totalUniquePageLeaversNo = genericP(results["unique_page_leavers"], uniquePageLeavesDiv, 2, idList);
-            totalUniquePageLeaversNo.className = "number";
-            let totalPageLeavers = genericP("Student(s) left the page at least once during the test",
-                uniquePageLeavesDiv, 3, idList);
-            totalPageLeavers.className = "text text-last";
+            clearInterval(idDict.totalUniquePageLeaversNo);
+            document.getElementById("total-page-leavers-no").innerText = results["unique_page_leavers"];
         }
 
     </script>
@@ -118,6 +105,25 @@
     <div id="submissions"></div>
     <div id="statistics">
         <h1>Important Statistics</h1>
+        <div id="std-div">
+            <p class="number" id="std-no">0</p>
+            <p class="text">Standard Deviation</p>
+        </div>
+
+        <div id="std-no-div">
+            <p class="number" id="std-above-no">0</p>
+            <p class="text" id="std-above-desc">Student(s) above or at 2 standard deviations</p>
+        </div>
+
+        <div id="total-page-leaves">
+            <p class="number" id="total-page-leaves-no">0</p>
+            <p class="text">Total Page Leave(s)</p>
+        </div>
+
+        <div id="total-page-leavers">
+            <p class="number" id="total-page-leavers-no">0</p>
+            <p class="text text-last">Student(s) left the page at least once during the test</p>
+        </div>
     </div>
 
 {% endblock %}

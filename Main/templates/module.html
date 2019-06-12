@@ -51,13 +51,14 @@
                             average = "No Scored Submissions!";
                         }
                         else {
-                            average = "Average Score: " + results["quiz_statistics"][i]["submission_statistics"]["score_average"];
+                            average = "Average Score: " +
+                                Math.round(results["quiz_statistics"][i]["submission_statistics"]["score_average"] * 100) + "%";
                         }
                         averageScore.innerText = average;
                         averageScore.style.opacity = "0";
                         quizDiv.appendChild(averageScore);
                         idList.push(setInterval(function () {
-                            fadeIn(averageScore, i, idList);
+                            fadeIn(averageScore, "score", i, idList);
                         }, 15));
 
                         if (noResults) {
@@ -69,7 +70,7 @@
                             noSub.style.opacity = "0";
                             quizDiv.appendChild(noSub);
                             idList.push(setInterval(function () {
-                                fadeIn(noSub, i, idList);
+                                fadeIn(noSub, "submissions",  i, idList);
                             }, 15));
                         }
 

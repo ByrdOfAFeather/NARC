@@ -11,9 +11,11 @@
             newGeneric.id = genericName + "-" + index;
             let newGenericName = document.createElement("p");
             newGenericName.className = genericName + "-name";
+            newGenericName.id = genericName + "-" + index + "-text";
             newGenericName.innerText = name;
             newGeneric.appendChild(newGenericName);
             genericGenLink.appendChild(newGeneric);
+            newGeneric.style.marginTop = '50px';
             return genericGenLink;
         }
 
@@ -26,10 +28,20 @@
         }
 
 
+        function floatIn(genericName, index, localList) {
+            let div = document.getElementById(genericName + "-" + index);
+            div.style.marginTop = parseInt(div.style.marginTop, 10) - 1 + "px";
+            if (!(parseInt(div.style.marginTop, 10) > 0)) {
+                clearInterval(localList[index]);
+            }
+        }
+
+
         function loadGeneric(generics, genericName) {
             let courseLength = generics.length;
             {#let progressBar = $('#progressbar');#}
-            let idList = [];
+            let fadeIns = [];
+            let floatIns = [];
             if (courseLength === 0) {
                 {#progressBar.hide();#}
                 let error = document.createElement('p');
@@ -39,18 +51,22 @@
                 for (let i = 0; i < courseLength; i++) {
                     console.log(generics[i]);
                     let currentGeneric = generics[i];
-                    let genericDiv = genericGen(
+                    let genericLink = genericGen(
                         currentGeneric["name"].replace("\\u0026", "&"),
                         linkGen(currentGeneric["id"]),
                         genericName,
                         i
                     );
-                    if (genericName === "quiz") { $("#quizzes").append(genericDiv);}
-                    $("#" + genericName + "s").append(genericDiv);
+                    if (genericName === "quiz") { $("#quizzes").append(genericLink);}
+                    $("#" + genericName + "s").append(genericLink);
                     {#progressBar.progressbar("value", progress + ((1 / courseLength) * 100));#}
-                    idList.push(setInterval(function () {
-                        fadeIn(genericDiv, i, idList);
+                    fadeIns.push(setInterval(function () {
+                        fadeIn(genericLink, i, fadeIns);
                     }, 15));
+                    floatIns.push(setInterval(function() {
+                        floatIn(genericName, i, floatIns);
+                    }, 15));
+
                 }
                 {#progressBar.hide();#}
             }
