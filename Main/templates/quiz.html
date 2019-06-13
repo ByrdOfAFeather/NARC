@@ -15,6 +15,7 @@
         let dataSet = {};
         let eventSet = {};
         let submissionSet = {};
+        passableData = [];
 
         // TODO: Add warning when the button lock is true and the button is pressed
         let buttonLock = true;
@@ -142,6 +143,16 @@
             let overall_time_taken_sum = 0;
             let overall_page_leaves_sum = 0;
             let overall_denominator = 0;
+
+            let time_taken_max = 0;
+            let time_taken_min = null;
+
+            let page_leaves_max = 0;
+            let page_leaves_min = null;
+
+            let time_between_max = 0;
+            let time_between_min = null;
+
             for (let i =0; i<userIds.length; i++) {
                 currentId = userIds[i];
                 currentEvents = eventData[currentId]["quiz_submission_events"];
@@ -182,6 +193,25 @@
                     overall_time_taken_sum += submissionSet[currentId]["time_spent"];
                     overall_page_leaves_sum += dataSet[currentId]["page_leaves"];
                     overall_denominator += 1;
+
+                    if (userData[currentId]["average_time_between_questions"] > time_between_max) {
+                        time_between_max = userData[currentId]["average_time_between_questions"];
+                    }
+                    if (userData[currentId]["time_taken"] > time_taken_max) {
+                        time_taken_max = userData[currentId]["time_taken"];
+                    }
+                    if (userData[currentId]["page_leaves"] > page_leaves_max) {
+                        page_leaves_max = userData[currentId]["page_leaves"];
+                    }
+                    if (userData[currentId]["average_time_between_questions"] < time_between_min || time_between_min == null) {
+                        time_between_min = userData[currentId]["average_time_between_questions"];
+                    }
+                    if (userData[currentId]["time_taken"] < time_taken_min || time_taken_min == null) {
+                        time_taken_min = userData[currentId]["time_taken"];
+                    }
+                    if (userData[currentId]["page_leaves"] < page_leaves_min || page_leaves_min == null) {
+                        page_leaves_min = userData[currentId]["page_leaves"]
+                    }
                 }
                 else if (denominator === 0) {
                     // This is the case where either there are no questions or the user did not answer any
@@ -193,6 +223,24 @@
                     userData[currentId]["time_taken"] = submissionSet[currentId]["time_spent"];
                     overall_time_taken_sum += submissionSet[currentId]["time_spent"];
                     overall_page_leaves_sum += dataSet[currentId]["page_leaves"];
+                    if (userData[currentId]["average_time_between_questions"] > time_between_max) {
+                        time_between_max = userData[currentId]["average_time_between_questions"];
+                    }
+                    if (userData[currentId]["time_taken"] > time_taken_max) {
+                        time_taken_max = userData[currentId]["time_taken"];
+                    }
+                    if (userData[currentId]["page_leaves"] > page_leaves_max) {
+                        page_leaves_max = userData[currentId]["page_leaves"];
+                    }
+                    if (userData[currentId]["average_time_between_questions"] < time_between_min || time_between_min === null) {
+                        time_between_min = userData[currentId]["average_time_between_questions"];
+                    }
+                    if (userData[currentId]["time_taken"] < time_taken_min || time_taken_min === null) {
+                        time_taken_min = userData[currentId]["time_taken"];
+                    }
+                    if (userData[currentId]["page_leaves"] < page_leaves_min || page_leaves_min === null) {
+                        page_leaves_min = userData[currentId]["page_leaves"]
+                    }
                 }
             }
 
@@ -201,10 +249,29 @@
             let rel_page_leaves = overall_page_leaves_sum / overall_denominator;
             if (buildRel) {
                 for (let i = 0; i < userIds.length; i++) {
+                    console.log(dataSet);
                     let currentUser = userData[userIds[i]];
+                    // TODO: If you find a better way of scaling data column-wise in tensorflow, remake this
+                    currentUser["average_time_between_questions"] = (currentUser["average_time_between_questions"] - time_between_min) / (time_between_max - time_between_min);
+                    currentUser["time_taken"] = (currentUser["time_taken"] - time_taken_min) / (time_taken_max - time_taken_min);
+                    currentUser["page_leaves"] = (currentUser["page_leaves"] - page_leaves_min) / (page_leaves_max - page_leaves_min);
+
+                    // TODO: Rel is broken for now since I normlize the data
                     currentUser["rel_average_time_between_questions"] = currentUser["average_time_between_questions"] - rel_average_time_between;
                     currentUser["rel_time_taken"] = currentUser["time_taken"] - rel_time_taken;
                     currentUser["rel_page_leaves"] = currentUser["page_leaves"] - rel_page_leaves;
+                    // TODO: Come back and make this not like this please. Build the list instead of building a temporary dictionary
+                    passableData.push(
+                        {
+                            "id": currentId,
+                            "page_leaves": currentUser["page_leaves"],
+                            "average_time_between_questions": currentUser["average_time_between_questions"],
+                            "time_taken": currentUser["time_taken"],
+                            "rel_average_time_between_questions": currentUser["rel_average_time_between_questions"],
+                            "rel_time_taken": currentUser["rel_time_taken"],
+                            "rel_page_leaves": currentUser["rel_page_leaves"]
+                        },
+                    );
                 }
             }
         }
@@ -212,6 +279,7 @@
 
         function parseData() {
             buildData(dataSet, eventSet, true);
+            loadModel(passableData);
         }
 
     </script>

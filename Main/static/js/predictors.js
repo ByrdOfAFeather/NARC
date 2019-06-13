@@ -9,24 +9,25 @@ function loadData(data) {
             page_leaves: student.page_leaves,
         }));
 
-        const inOutTensor = tf.tensor2d(inOut, [inOut.length, 1]);
+        const tensorInOut = inOut.map(student => [student.time_taken, student.average_time_between_questions, student.page_leaves]);
+        console.log(inOut);
+        const inOutTensor = tf.tensor2d(tensorInOut, [data.length, 3]);
 
-        const inOutMax = inOutTensor.max();
-        const inOutMin = inOutTensor.min();
-
-        const normalizedInOut = inOutTensor.sub(inOutMin).div(inOutMax.sub(inOutMax));
         return {
-            inputs: normalizedInOut,
-            inOutMax: inOutMax,
-            inOutMin: inOutMin
+            inputs: inOutTensor,
+            inOutMax: 0,
+            inOutMin: 1
         }
     })
 }
 
 
-function loadModel(dataSet) {
+async function loadModel(dataSet) {
+    console.log(dataSet);
     const data = loadData(dataSet);
     const model = createModel(4, 10, 5, 2);
+    await trainModel(model, data);
+    data["inputs"].print();
 }
 
 function createModel(feature_count, layer_1, layer_2, layer_3) {
@@ -36,8 +37,29 @@ function createModel(feature_count, layer_1, layer_2, layer_3) {
     model.add(tf.layers.dense({units: layer_3, useBias: true}));
     model.add(tf.layers.dense({units: layer_2, useBias: true}));
     model.add(tf.layers.dense({units: layer_1, useBias: true}));
-    model.add(tf.layers.dense({units: feature_count, useBias: true}));
+    model.add(tf.layers.dense({units: feature_count}));
     return model
+}
+
+async function trainModel(model, inputs) {
+    model.compile({
+        optimizer: tf.train.adam(),
+        loss: tf.losses.meanSquaredError,
+        metrics: ['mse']
+    });
+
+    const batchSize = 28;
+    const epochs = 50;
+
+    return await model.fit(inputs, inputs, {
+        batchSize,
+        epochs,
+        shuffle: true,
+        callbacks: function() {
+            console.log("I trained the model!");
+        }
+    })
+
 }
 
 createModel(4, 10, 10, 10);
