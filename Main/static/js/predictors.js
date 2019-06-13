@@ -25,21 +25,36 @@ function loadData(data) {
 async function loadModel(dataSet) {
     console.log(dataSet);
     const data = loadData(dataSet);
-    const model = createModel(4, 10, 5, 2);
+    const model = createModel(4, 10, 5, 2, data);
     await trainModel(model, data);
     data["inputs"].print();
 }
 
-function createModel(feature_count, layer_1, layer_2, layer_3) {
-    let model = tf.sequential();
-    model.add(tf.layers.dense({inputShape: [feature_count], units: layer_1, useBias: true}));
-    model.add(tf.layers.dense({units: layer_2, useBias: true}));
-    model.add(tf.layers.dense({units: layer_3, useBias: true}));
-    model.add(tf.layers.dense({units: layer_2, useBias: true}));
-    model.add(tf.layers.dense({units: layer_1, useBias: true}));
-    model.add(tf.layers.dense({units: feature_count}));
-    return model
+function createModel(featureSize, layer1, layer2, layer3) {
+    const inputs = tf.input({shape: [featureSize]});
+    const encodeLayer1 = tf.layers.dense({units: layer1, activation: "tanh"});
+    const encodeLayer2 = tf.layers.dense({units: layer2, activation: "tanh"});
+    const encodeLayer3 = tf.layers.dense({units: layer3, activation: "tanh"});
+    const decodeLayer1 = tf.layers.dense({units: layer2, activation: "tanh"});
+    const decodeLayer2 = tf.layers.dense({units: layer1, activation: "tanh"});
+    const decodeLayer3 = tf.layers.dense({units: featureSize, activation: "linear"});
+    const output =
+        decodeLayer3.apply(
+            decodeLayer2.apply(
+                decodeLayer1.apply(
+                    encodeLayer3.apply(
+                        encodeLayer2.apply(
+                            encodeLayer1.apply(
+                                inputs
+                            )
+                        )
+                    )
+                )
+            )
+        );
+    return tf.model({inputs: inputs, outputs: output})
 }
+
 
 async function trainModel(model, inputs) {
     model.compile({
