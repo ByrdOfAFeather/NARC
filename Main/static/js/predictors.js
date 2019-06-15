@@ -36,7 +36,7 @@ function loadModel(dataSet) {
     const decodeInputs = tf.input({shape: [layer3]});
     const decodeLayer1 = tf.layers.dense({units: layer2, activation: "tanh"});
     const decodeLayer2 = tf.layers.dense({units: layer1, activation: "tanh"});
-    const decodeLayer3 = tf.layers.dense({units: featureSize, activation: "tanh"});
+    const decodeLayer3 = tf.layers.dense({units: featureSize, activation: "linear"});
     const decodeOutput = decodeLayer3.apply(decodeLayer2.apply(decodeLayer1.apply(decodeInputs)));
 
     const encoder = tf.model({
@@ -60,11 +60,12 @@ function loadModel(dataSet) {
     });
 
     const optimizer = tf.train.adam(.08);
-    setInterval(trainModel, 1000);
+    setInterval(trainModel, 100);
     function trainModel() {
         console.log(tf.memory());
         const printLoss = calcLoss();
         printLoss.print();
+        printLoss.dispose();
         optimizer.minimize(calcLoss);
     }
 }

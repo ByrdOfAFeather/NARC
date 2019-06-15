@@ -21,3 +21,8 @@ def module(request, course_id, module_id):
 
 def quiz(request, course_id, module_id, quiz_id):
 	return render(request, "quiz.html", {"course_id": course_id, "module_id": module_id, "quiz_id": quiz_id})
+
+
+def testing(request):
+	return render(request, "model_training.html")
+

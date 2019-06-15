@@ -1,0 +1,25 @@
+body, html {
+    height: 100%;
+}
+
+#neural-net {
+    height: 100%;
+    width: inherit;
+    position: absolute;
+    left: 25%;
+}
+
+.layer {
+    height: 50%;
+    width: inherit;
+    display: inline-grid;
+    position: relative;
+    padding: 10px;
+}
+
+.layer canvas {
+    position: relative;
+    top: 50%;
+}
+
+
