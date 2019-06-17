@@ -1,6 +1,14 @@
 {% extends 'progressbar.html' %}
 {% block generic-functions %}
     <script type="text/javascript">
+        function randomColor() {
+            let no1 = Math.floor(Math.random() * Math.floor(126));
+            let no2 = Math.floor(Math.random() * Math.floor(126));
+            let no3 = Math.floor(Math.random() * Math.floor(126));
+            return "rgb(" + no1 + ","  + no2 + "," + no3 + ")";
+        }
+
+
         function genericGen(name, link, genericName, index) {
             let genericGenLink = document.createElement("a");
             genericGenLink.href = link;
@@ -16,6 +24,7 @@
             newGeneric.appendChild(newGenericName);
             genericGenLink.appendChild(newGeneric);
             newGeneric.style.marginTop = '50px';
+            newGeneric.style.backgroundColor = randomColor();
             return genericGenLink;
         }
 

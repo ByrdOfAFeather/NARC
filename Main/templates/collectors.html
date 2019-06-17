@@ -11,10 +11,33 @@
                 method: "GET",
                 dataType: "json",
                 data: {"token": token},
-                success: function (results) {
-                    window.location.replace("{% url 'mainpages:courses-view' %}")
+                success: function (_) {
+                    if (confirm('Would you like to allow NARC to save the datasets you run through the program?')) {
+                        $.ajax({
+                            url: "{% url 'canvaswrapper:allow-save' %}",
+                            method: "GET",
+                            success: function() {
+                                window.location.replace("{% url 'mainpages:courses-view' %}");
+                            },
+                            // TODO: Error Case
+                            error: function() {
+                            }
+                        });
+                    }
+                    else {
+                        $.ajax({
+                            url: "{% url 'canvaswrapper:deny-save' %}",
+                            method: "GET",
+                            success: function() {
+                                window.location.replace("{% url 'mainpages:courses-view' %}")
+                            },
+                            // TODO: Error Case
+                            error: function() {
+                            }
+                        });
+                    }
                 },
-                error: function (error) {
+                error: function (_) {
                     alert("Token not valid! Please generate a new one!");
                 }
             })

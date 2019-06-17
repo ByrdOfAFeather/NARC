@@ -15,11 +15,13 @@
     background-color: rgb(57, 75, 88);
 }
 
+.course:hover {
+    opacity: .5;
+}
+
 /* Center text and color it */
 .course p {
     color: white;
-    height: inherit;
-    top: 23%;
     position: relative;
     font-size: 1.5em;
 }

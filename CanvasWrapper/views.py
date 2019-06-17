@@ -1,7 +1,7 @@
 import requests
 import json
 from django.shortcuts import render
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from math import floor
 
 def test_token(request):
@@ -223,3 +223,19 @@ def get_quiz_submissions(request):
 	else:
 		# TODO: Fail Condition
 		pass
+
+
+def save_data(request):
+	response = HttpResponse("Thank you!")
+	if request.COOKIES.get("save_data"):
+		response.delete_cookie("save_data")
+	response.set_cookie("save_data", True)
+	return response
+
+
+def deny_save_data(request):
+	response = HttpResponse("Thank you!")
+	if request.COOKIES.get("save_data", ""):
+		response.delete_cookie("save_data")
+	response.set_cookie("save_data", False)
+	return response

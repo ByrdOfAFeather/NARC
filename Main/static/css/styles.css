@@ -1,11 +1,12 @@
 #login-btn {
     /* Coloring */
-    background: #0e8e0e;
+    /*background: #0e8e0e;*/
     color: white;
-    border-radius: 25px;
-    width: 200px;
-    height: 200px;
-    border: none;
+
+    /*border-radius: 25px;*/
+    width: 400px;
+    height: 400px;
+    /*border: none;*/
 
     /* Centering */
     -webkit-transform: translate(-50%,-50%);
@@ -15,14 +16,40 @@
     left: 50%;
 
     /* Font Work */
-    font-family: 'Consolas', 'Deja Vu Sans Mono', 'Bitstream Vera Sans Mono', monospace;
-    font-size: 2em;
+    /*font-family: 'Consolas', 'Deja Vu Sans Mono', 'Bitstream Vera Sans Mono', monospace;*/
+    /*font-size: 2em;*/
 
 }
 
-#login-btn:hover {
-    background: #0e680e;
+#about-btn {
+    position: absolute;
+    top: 64%;
+    left: 30%;
+    width: 165px;
+    height: 42.203px;
+}
+
+#contact-btn {
+    position: absolute;
+    top: 64.5%;
+    left: 61%;
+    width: 165px;
+    height: 36px;
+}
+
+.button:hover {
+    /*background: #0e680e;*/
+    opacity: .5;
     cursor: pointer;
+}
+
+#login-text {
+    /* Centering */
+    -webkit-transform: translate(-67%,-50.3%);
+    transform: translate(-67,-50.3%);
+    position: absolute;
+    top: 67%;
+    left: 50.3%;
 }
 
 /* https://jqueryui.com/progressbar/#label */
