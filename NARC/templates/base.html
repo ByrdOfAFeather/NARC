@@ -55,6 +55,12 @@
                 }
             };
 
+
+            function goHome() {
+                window.location.replace("{% url 'mainpages:courses-view' %}");
+            }
+
+
             function openSettings() {
                 let blurrables = document.getElementById("blurrable");
                 let settings = document.getElementById("settings");
@@ -97,6 +103,7 @@
         </div>
     {% endblock %}
     <div id="blurrable">
+        <img id="home-button" src="{% static 'images/favicon-32x32.png' %}" onclick="goHome();">
         {% block body %}
         {% endblock %}
     </div>

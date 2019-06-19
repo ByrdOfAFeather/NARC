@@ -2,6 +2,11 @@
     float: right;
 }
 
+#settings-button:hover {
+    opacity: .5;
+    cursor: pointer;
+}
+
 #settings {
     width: 400px;
     height: 400px;
@@ -27,4 +32,13 @@
 
 #submit-settings {
     margin-left: 150px;
+}
+
+#home-button {
+    float: right;
+}
+
+#home-button:hover {
+    opacity: .5;
+    cursor: pointer;
 }

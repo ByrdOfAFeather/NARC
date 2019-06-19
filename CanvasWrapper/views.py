@@ -2,18 +2,24 @@ import requests
 import json
 import hashlib
 from django.shortcuts import render
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse
 from CanvasWrapper.models import User, Dataset, UserToDataset
 from math import floor
 
 
 def test_token(request):
 	token = request.GET.get("token", "")
+	print(token)
 	if token:
 		header = {"Authorization": "Bearer {}".format(token)}
 		test = requests.get("http://canvas.instructure.com/api/v1/courses",
 		                    headers=header)
 		if test.status_code == 200:
+			hashed_token = hashlib.sha3_256(token.encode("utf-8")).hexdigest()
+			print(hashed_token)
+			User.objects.create(
+				hashed_token=hashed_token
+			)
 			response = JsonResponse({"success": "Token Test Succeeded!"})
 			response.status_code = 200
 			response.set_cookie("header", header)
@@ -242,10 +248,12 @@ def save_data(request):
 
 	json_data = request.POST.get("data", "")
 	token = request.COOKIES.get("header", "")
-	token = token[25:-2]
+	token = token[26:-2]
+	print(token)
 	token = hashlib.sha3_256(token.encode("utf-8")).hexdigest()
+	print(token)
 	# TODO: Create Fail Conditions
-	current_user = User.objects.filter(hashed_token=token)[0]
+	current_user = User.objects.get(hashed_token=token)
 	json_data = anonymize_data(json_data)
 
 	current_data = Dataset.objects.create(
@@ -262,4 +270,20 @@ def save_data(request):
 
 
 def saved_data(request):
-	return render(request, 'saved_data.html')
+	load = False
+	datasets = ""
+	token = request.COOKIES.get("header", "")
+	print("I got here")
+	if token:
+		token = token[26:-2]
+		token = hashlib.sha3_256(token.encode("utf-8")).hexdigest()
+		user = User.objects.get(
+			hashed_token=token
+		)
+		if user:
+			datasets = UserToDataset.objects.filter(
+				user=user
+			)
+			if datasets: load = True
+
+	return render(request, 'saved_data.html', {"datasets": datasets, "load": load})
