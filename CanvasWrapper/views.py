@@ -1,6 +1,7 @@
 import requests
 import json
 import hashlib
+from django.http import QueryDict
 from django.shortcuts import render
 from django.http import JsonResponse
 from CanvasWrapper.models import User, Dataset, UserToDataset
@@ -287,3 +288,12 @@ def saved_data(request):
 			if datasets: load = True
 
 	return render(request, 'saved_data.html', {"datasets": datasets, "load": load})
+
+
+def delete_data(request):
+	put = QueryDict(request.body)
+	item_id = put.get("id")
+	Dataset.objects.get(id=item_id).delete()
+	response = JsonResponse({"success": "none"})
+	response.status_code = 200
+	return response

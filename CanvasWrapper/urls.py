@@ -11,5 +11,6 @@ urlpatterns = [
 	path("getquizstats", view=views.get_quiz_stats, name="quiz-get-stats"),
 	path("getquizsubmissions", view=views.get_quiz_submissions, name="quiz-get-submissions"),
 	path("savedata", view=views.save_data, name="save-data"),
-	path("saveddata", view=views.saved_data, name="saved-data")
+	path("saveddata", view=views.saved_data, name="saved-data"),
+	path("deletedata", view=views.delete_data, name="delete-local-data")
 ]

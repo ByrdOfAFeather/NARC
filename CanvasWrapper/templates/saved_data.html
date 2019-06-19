@@ -7,13 +7,30 @@
 {% block body %}
     <script type="text/javascript">
         function deleteId(idToDelete) {
+            if (confirm("Are you sure you want to delete this item?")) {
+                $.ajax({
+                    url: "{% url 'canvaswrapper:delete-local-data' %}",
+                    method: "PUT",
+                    dataType: "json",
+                    data: {"id": idToDelete},
+                    success: function() {
+                        let remove = document.getElementById(idToDelete + "-div");
+                        remove.parentElement.removeChild(remove);
+                        alert("Data Deleted!");
+                    },
+                    error: function() {
+                        // TODO: Actual error condition
+                        alert("Data wasn't deleted!")
+                    }
+                })
+            }
             console.log(idToDelete);
         }
     </script>
     {% if load %}
         {% for data in datasets %}
-        <div class="dataset">
-            <img id="{{ data.dataset.id }}" class="delete-button" src="{% static 'images/delete_button.png' %}" onclick="deleteId(this.id);">
+        <div id="{{ data.dataset.id }}-div" class="dataset">
+            <img id="{{ data.dataset.id }}" alt="delete" class="delete-button" src="{% static 'images/delete_button.png' %}" onclick="deleteId(this.id);">
             <p> {{ data.dataset.data }} </p>
             <p> {{ data.dataset.date_created| date:'Y-m-d H:i'  }}</p>
         </div>
