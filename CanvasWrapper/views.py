@@ -1,8 +1,11 @@
 import requests
 import json
+import hashlib
 from django.shortcuts import render
 from django.http import JsonResponse, HttpResponse
+from CanvasWrapper.models import User, Dataset, UserToDataset
 from math import floor
+
 
 def test_token(request):
 	token = request.GET.get("token", "")
@@ -225,17 +228,38 @@ def get_quiz_submissions(request):
 		pass
 
 
+def anonymize_data(json_data):
+	# Technically, the original ID isn't that revealing as long as the users are in separate instructure domains.
+	# However, in my experience, users in the same domain (even students!) can look up users based on ID. So
+	# it's better to just go ahead and assign incrementing numbers to the ids.
+	json_data = json.loads(json_data)
+	for index, items in enumerate(json_data):
+		items["id"] = index
+	return json.dumps(json_data)
+
+
 def save_data(request):
-	response = HttpResponse("Thank you!")
-	if request.COOKIES.get("save_data"):
-		response.delete_cookie("save_data")
-	response.set_cookie("save_data", True)
+
+	json_data = request.POST.get("data", "")
+	token = request.COOKIES.get("header", "")
+	token = token[25:-2]
+	token = hashlib.sha3_256(token.encode("utf-8")).hexdigest()
+	# TODO: Create Fail Conditions
+	current_user = User.objects.filter(hashed_token=token)[0]
+	json_data = anonymize_data(json_data)
+
+	current_data = Dataset.objects.create(
+		data=json_data
+	)
+
+	UserToDataset.objects.create(
+		user=current_user,
+		dataset=current_data
+	)
+	response = JsonResponse({"success": "data saved"})
+	response.status_code = 200
 	return response
 
 
-def deny_save_data(request):
-	response = HttpResponse("Thank you!")
-	if request.COOKIES.get("save_data", ""):
-		response.delete_cookie("save_data")
-	response.set_cookie("save_data", False)
-	return response
+def saved_data(request):
+	return render(request, 'saved_data.html')

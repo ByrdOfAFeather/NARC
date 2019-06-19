@@ -10,6 +10,6 @@ urlpatterns = [
 	path("getquizinfo/<int:quiz_id>", view=views.get_quiz_info, name="quiz-get-info"),
 	path("getquizstats", view=views.get_quiz_stats, name="quiz-get-stats"),
 	path("getquizsubmissions", view=views.get_quiz_submissions, name="quiz-get-submissions"),
-	path("allowsavedata", view=views.save_data, name="allow-save"),
-	path("denysavedata", view=views.deny_save_data, name="deny-save"),
+	path("savedata", view=views.save_data, name="save-data"),
+	path("saveddata", view=views.saved_data, name="saved-data")
 ]

@@ -1,10 +1,10 @@
 /* Get rid of inner text decoration */
-.course-link {
+.generic-link {
     text-decoration: none;
 }
 
 /* Get a nice looking bounding box and display it in-line */
-.course {
+.generic {
     border: 2px solid black;
     border-radius: 20px;
     text-align: center;
@@ -15,12 +15,12 @@
     background-color: rgb(57, 75, 88);
 }
 
-.course:hover {
+.generic:hover {
     opacity: .5;
 }
 
 /* Center text and color it */
-.course p {
+.generic p {
     color: white;
     position: relative;
     font-size: 1.5em;

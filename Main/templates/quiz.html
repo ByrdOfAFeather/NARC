@@ -213,11 +213,13 @@
                         page_leaves_min = userData[currentId]["page_leaves"]
                     }
                 }
+
                 else if (denominator === 0) {
                     // This is the case where either there are no questions or the user did not answer any
                     // The user is deleted as the user cannot cheat if they didn't answer a question!
                     delete userData[currentId];
                 }
+
                 else {
                     userData[currentId]["average_time_between_questions"] = sum / denominator;
                     userData[currentId]["time_taken"] = submissionSet[currentId]["time_spent"];
@@ -247,32 +249,91 @@
             let rel_average_time_between = overall_time_between_sum / overall_denominator;
             let rel_time_taken = overall_time_taken_sum / overall_denominator;
             let rel_page_leaves = overall_page_leaves_sum / overall_denominator;
-            if (buildRel) {
-                for (let i = 0; i < userIds.length; i++) {
-                    console.log(dataSet);
-                    let currentUser = userData[userIds[i]];
-                    // TODO: If you find a better way of scaling data column-wise in tensorflow, remake this
-                    currentUser["average_time_between_questions"] = (currentUser["average_time_between_questions"] - time_between_min) / (time_between_max - time_between_min);
-                    currentUser["time_taken"] = (currentUser["time_taken"] - time_taken_min) / (time_taken_max - time_taken_min);
-                    currentUser["page_leaves"] = (currentUser["page_leaves"] - page_leaves_min) / (page_leaves_max - page_leaves_min);
 
-                    // TODO: Rel is broken for now since I normlize the data
-                    currentUser["rel_average_time_between_questions"] = currentUser["average_time_between_questions"] - rel_average_time_between;
-                    currentUser["rel_time_taken"] = currentUser["time_taken"] - rel_time_taken;
-                    currentUser["rel_page_leaves"] = currentUser["page_leaves"] - rel_page_leaves;
-                    // TODO: Come back and make this not like this please. Build the list instead of building a temporary dictionary
-                    passableData.push(
-                        {
-                            "id": currentId,
-                            "page_leaves": currentUser["page_leaves"],
-                            "average_time_between_questions": currentUser["average_time_between_questions"],
-                            "time_taken": currentUser["time_taken"],
-                            "rel_average_time_between_questions": currentUser["rel_average_time_between_questions"],
-                            "rel_time_taken": currentUser["rel_time_taken"],
-                            "rel_page_leaves": currentUser["rel_page_leaves"]
-                        },
-                    );
+            let rel_avg_time_max = 0;
+            let rel_time_taken_max = 0;
+            let rel_page_leaves_max = 0;
+
+            let rel_avg_time_min = null;
+            let rel_time_taken_min = null;
+            let rel_page_leaves_min = null;
+
+            // This scales the normal values and sets up scaling the relative values
+            for (let i = 0; i<userIds.length; i++) {
+                console.log(dataSet);
+                let currentUser = userData[userIds[i]];
+                // TODO: If you find a better way of scaling data column-wise in tensorflow, remake this
+                currentUser["average_time_between_questions"] = (currentUser["average_time_between_questions"] - time_between_min) / (time_between_max - time_between_min);
+                currentUser["time_taken"] = (currentUser["time_taken"] - time_taken_min) / (time_taken_max - time_taken_min);
+                currentUser["page_leaves"] = (currentUser["page_leaves"] - page_leaves_min) / (page_leaves_max - page_leaves_min);
+
+                let curRelAvgTimeTaken = currentUser["average_time_between_questions"] - rel_average_time_between;
+                let curRelTimeTaken =  currentUser["time_taken"] - rel_time_taken;
+                let curRelPageLeaves = currentUser["page_leaves"] - rel_page_leaves;
+
+                currentUser["rel_average_time_between_questions"] = curRelAvgTimeTaken;
+                currentUser["rel_time_taken"] = curRelTimeTaken;
+                currentUser["rel_page_leaves"] = curRelPageLeaves;
+
+                //TODO: there has got to be a better way to do this
+                if (curRelAvgTimeTaken > rel_avg_time_max) {
+                    rel_avg_time_max = curRelAvgTimeTaken;
                 }
+
+                if (curRelAvgTimeTaken < rel_avg_time_min || rel_avg_time_min == null) {
+                    rel_avg_time_min = curRelAvgTimeTaken;
+                }
+
+                if (curRelTimeTaken > rel_time_taken_max) {
+                    rel_time_taken_max = curRelTimeTaken;
+                }
+
+                if (curRelTimeTaken < rel_time_taken_min || rel_time_taken_min == null) {
+                    rel_time_taken_min = curRelTimeTaken;
+                }
+
+                if (curRelPageLeaves > rel_page_leaves_max) {
+                    rel_page_leaves_max = curRelPageLeaves;
+                }
+
+                if (curRelPageLeaves < rel_page_leaves_min || rel_page_leaves_min == null) {
+                    rel_page_leaves_min = curRelPageLeaves;
+                }
+            }
+
+            for (let i = 0; i<userIds.length; i++) {
+                let currentUser = userData[userIds[i]];
+                currentUser["rel_average_time_between_questions"] = (currentUser["rel_average_time_between_questions"] - rel_avg_time_min) / (rel_avg_time_max - rel_avg_time_min);
+                currentUser["rel_time_taken"] = (currentUser["rel_time_taken"] - rel_time_taken_min) / (rel_time_taken_max - rel_time_taken_min);
+                currentUser["rel_page_leaves"] = (currentUser["rel_page_leaves"] - rel_page_leaves_min) / (rel_page_leaves_max - rel_page_leaves_min);
+                // TODO: Come back and make this not like this please. Build the list instead of building a temporary dictionary
+                passableData.push(
+                    {
+                        "id": currentId,
+                        "page_leaves": currentUser["page_leaves"],
+                        "average_time_between_questions": currentUser["average_time_between_questions"],
+                        "time_taken": currentUser["time_taken"],
+                        "rel_average_time_between_questions": currentUser["rel_average_time_between_questions"],
+                        "rel_time_taken": currentUser["rel_time_taken"],
+                        "rel_page_leaves": currentUser["rel_page_leaves"]
+                    },
+                );
+            }
+            console.log(passableData);
+            if (window.localStorage.getItem("save_data")) {
+                $.ajax({
+                    url: "{% url 'canvaswrapper:save-data' %}",
+                    method: "POST",
+                    dataType: "json",
+                    data: {"data": JSON.stringify(passableData)},
+                    success: function(_) {
+                        alert("Data saved!");
+                    },
+                    error: function(_) {
+                        // TODO: Proper Error Condition
+                        alert("Data was not saved!");
+                    }
+                });
             }
         }
 

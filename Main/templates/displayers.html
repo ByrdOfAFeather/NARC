@@ -13,12 +13,12 @@
             let genericGenLink = document.createElement("a");
             genericGenLink.href = link;
             genericGenLink.style.opacity = "0";
-            genericGenLink.className = genericName + "-link";
+            genericGenLink.className = genericName + "-link" + " generic-link";
             let newGeneric = document.createElement("div");
-            newGeneric.className = genericName;
+            newGeneric.className = genericName + " generic";
             newGeneric.id = genericName + "-" + index;
             let newGenericName = document.createElement("p");
-            newGenericName.className = genericName + "-name";
+            newGenericName.className = genericName + "-name" + " generic-name";
             newGenericName.id = genericName + "-" + index + "-text";
             newGenericName.innerText = name;
             newGeneric.appendChild(newGenericName);

@@ -13,28 +13,12 @@
                 data: {"token": token},
                 success: function (_) {
                     if (confirm('Would you like to allow NARC to save the datasets you run through the program?')) {
-                        $.ajax({
-                            url: "{% url 'canvaswrapper:allow-save' %}",
-                            method: "GET",
-                            success: function() {
-                                window.location.replace("{% url 'mainpages:courses-view' %}");
-                            },
-                            // TODO: Error Case
-                            error: function() {
-                            }
-                        });
+                        window.localStorage.setItem("save_data", "true");
+                        window.location.replace("{% url 'mainpages:courses-view' %}");
                     }
                     else {
-                        $.ajax({
-                            url: "{% url 'canvaswrapper:deny-save' %}",
-                            method: "GET",
-                            success: function() {
-                                window.location.replace("{% url 'mainpages:courses-view' %}")
-                            },
-                            // TODO: Error Case
-                            error: function() {
-                            }
-                        });
+                        window.localStorage.setItem("save_data", "");
+                        window.location.replace("{% url 'mainpages:courses-view' %}");
                     }
                 },
                 error: function (_) {

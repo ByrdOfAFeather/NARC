@@ -5,22 +5,23 @@
     {% load static %}
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-    <link rel="apple-touch-icon" sizes="57x57" href="{% static 'apple-icon-57x57.png' %}">
-    <link rel="apple-touch-icon" sizes="60x60" href="{% static 'apple-icon-60x60.png' %}">
-    <link rel="apple-touch-icon" sizes="72x72" href="{% static 'apple-icon-72x72.png' %}">
-    <link rel="apple-touch-icon" sizes="76x76" href="{% static 'apple-icon-76x76.png' %}">
-    <link rel="apple-touch-icon" sizes="114x114" href="{% static 'apple-icon-114x114.png' %}">
-    <link rel="apple-touch-icon" sizes="120x120" href="{% static 'apple-icon-120x120.png' %}">
-    <link rel="apple-touch-icon" sizes="144x144" href="{% static 'apple-icon-144x144.png' %}">
-    <link rel="apple-touch-icon" sizes="152x152" href="{% static 'apple-icon-152x152.png' %}">
-    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'apple-icon-180x180.png' %}">
-    <link rel="icon" type="image/png" sizes="192x192"  href="{% static 'android-icon-192x192.png' %}">
-    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'favicon-32x32.png' %}">
-    <link rel="icon" type="image/png" sizes="96x96" href="{% static 'favicon-96x96.png' %}">
-    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'favicon-16x16.png' %}">
-    <link rel="manifest" href="{% static 'manifest.json' %}">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}">
+    <link rel="apple-touch-icon" sizes="57x57" href="{% static 'images/apple-icon-57x57.png' %}">
+    <link rel="apple-touch-icon" sizes="60x60" href="{% static 'images/apple-icon-60x60.png' %}">
+    <link rel="apple-touch-icon" sizes="72x72" href="{% static 'images/apple-icon-72x72.png' %}">
+    <link rel="apple-touch-icon" sizes="76x76" href="{% static 'images/apple-icon-76x76.png' %}">
+    <link rel="apple-touch-icon" sizes="114x114" href="{% static 'images/apple-icon-114x114.png' %}">
+    <link rel="apple-touch-icon" sizes="120x120" href="{% static 'images/apple-icon-120x120.png' %}">
+    <link rel="apple-touch-icon" sizes="144x144" href="{% static 'images/apple-icon-144x144.png' %}">
+    <link rel="apple-touch-icon" sizes="152x152" href="{% static 'images/apple-icon-152x152.png' %}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'images/apple-icon-180x180.png' %}">
+    <link rel="icon" type="image/png" sizes="192x192"  href="{% static 'images/android-icon-192x192.png' %}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'images/favicon-32x32.png' %}">
+    <link rel="icon" type="image/png" sizes="96x96" href="{% static 'images/favicon-96x96.png' %}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'images/favicon-16x16.png' %}">
+    <link rel="manifest" href="{% static 'images/manifest.json' %}">
     <meta name="msapplication-TileColor" content="#ffffff">
-    <meta name="msapplication-TileImage" content="{% static 'ms-icon-144x144.png' %}">
+    <meta name="msapplication-TileImage" content="{% static 'images/ms-icon-144x144.png' %}">
     <meta name="theme-color" content="#ffffff">
     {% csrf_token %}
     <script type="text/javascript">
@@ -45,7 +46,59 @@
 <body>
     {% block extras %}
     {% endblock %}
-    {% block body %}
+    {% block settings_menu_scripts %}
+        <script type="text/javascript">
+            window.onclick = function(event) {
+                if (event.target.className !== "settings-class"
+                    && document.getElementById("settings").style.visibility === "visible") {
+                    openSettings();
+                }
+            };
+
+            function openSettings() {
+                let blurrables = document.getElementById("blurrable");
+                let settings = document.getElementById("settings");
+                console.log(settings.elements["save_data_box"]);
+                console.log(window.localStorage.getItem("save_data") ? true:false);
+                settings.elements["save_data_box"].checked = window.localStorage.getItem("save_data") ? true:false;
+                if (settings.style.visibility === "visible") {
+                    settings.style.visibility = "hidden";
+                    blurrables.style.filter = "none";
+                }
+                else {
+                    settings.style.visibility = "visible";
+                    blurrables.style.filter = "blur(5px)";
+                }
+            }
+
+            function settings() {
+                window.localStorage.setItem("save_data", $('#save_data_box').is(':checked') ? "true":"");
+                let autoencoder_iterations = $('#autoencoder-iterations').val();
+                if (autoencoder_iterations) {
+                    window.localStorage.setItem("autoencoder_iterations", autoencoder_iterations);
+                }
+                openSettings();
+                return false;
+            }
+        </script>
+    {% endblock%}
+    {% block settings_menu %}
+        <div id="settings-div">
+            <img id="settings-button" class="settings-class" src="{% static 'images/temp_gear.png' %}" onclick='openSettings();'>
+            <form id="settings" class="settings-class" method="POST" onsubmit="return settings();">
+                {% csrf_token %}
+                <label class="settings-class" for="save_data_box">Allow NARC To Save Data: </label>
+                <input class="settings-class" id="save_data_box" type="checkbox"><br>
+                <a class="settings-class" href="{% url 'canvaswrapper:saved-data' %}">View Saved Data</a><br>
+                <label class="settings-class" for="autoencoder-iterations">Autoencoder Training Iterations: </label>
+                <input class="settings-class" id="autoencoder-iterations" type="number" placeholder=500000><br>
+                <input class="settings-class" id="submit-settings" type="submit" value="Save!">
+            </form>
+        </div>
     {% endblock %}
+    <div id="blurrable">
+        {% block body %}
+        {% endblock %}
+    </div>
 </body>
 </html>
