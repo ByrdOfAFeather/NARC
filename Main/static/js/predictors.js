@@ -17,7 +17,8 @@ function loadData(dataSet) {
     });
 }
 
-
+let iterations = parseInt(window.localStorage.getItem("autoencoder_iterations"));
+intervalTracker = {};
 function loadModel(dataSet) {
     const data = loadData(dataSet);
     const featureSize = 3;
@@ -55,18 +56,54 @@ function loadModel(dataSet) {
     };
 
     const calcLoss = () => tf.tidy(() => {
-            let test =  loss(model.decoder.predict(model.encoder.predict(data)), data);
-            return test;
+            let calcedLoss =  loss(model.decoder.predict(model.encoder.predict(data)), data);
+            return calcedLoss;
     });
 
     const optimizer = tf.train.adam(.08);
-    setInterval(trainModel, 100);
+    intervalTracker.autoencoder = setInterval(trainModel, 1);
     function trainModel() {
-        console.log(tf.memory());
-        const printLoss = calcLoss();
-        printLoss.print();
-        printLoss.dispose();
-        optimizer.minimize(calcLoss);
+        if (iterations === 0) {
+            clearInterval(intervalTracker.autoencoder);
+            document.getElementById("autoencoder-iterations-display").innerText = iterations;
+            predict();
+        }
+        else {
+            console.log(tf.memory());
+            const printLoss = calcLoss();
+            document.getElementById("loss").innerText = printLoss.dataSync()[0];
+            printLoss.dispose();
+            optimizer.minimize(calcLoss);
+            iterations -= 1;
+            document.getElementById("autoencoder-iterations-display").innerText = iterations;
+        }
+    }
+
+    function predict() {
+        let predictions = decoder.predict(encoder.predict(data));
+        let indivError = predictions.sub(data).mean(1);
+        let averageError = calcLoss(predictions, data).sqrt();
+        let errorsCond = indivError.greaterEqual(averageError);
+        let predictionsJS = predictions.arraySync(); 
+        let errorsCondJS = errorsCond.dataSync(); 
+        errorsCond.dispose(); 
+        predictions.dispose(); 
+        indivError.dispose(); 
+        averageError.dispose(); 
+        
+        let anomalies = [];
+        for (let i = 0; i < errorsCondJS.length; i++) {
+            if (errorsCondJS[i]) {
+                anomalies.push(predictionsJS[i]);
+            }
+        }
+
+        kmeans(anomalies);
+    }
+
+    function kmeans(anomalies) {
+        console.log(anomalies);
+        console.log("I got here");
     }
 }
 

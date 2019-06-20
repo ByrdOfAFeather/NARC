@@ -10,3 +10,10 @@ explore further developments of artificially intelligent cheat-detection solutio
 <sub>*1.0.0 is designated as this version is to be incompatible and unrecognizable from previous versions of NARC.
 It does not indicate a finished version or complete version of NARC.</sub>
 
+<h1 align='center'>Built With</h1>
+
+K-Means for Javascript (clusterfck): https://github.com/harthur/clusterfck/blob/master/lib/kmeans.js
+
+Tensorflow for Javascript: https://github.com/tensorflow/tfjs
+
+Django: https://github.com/django/django

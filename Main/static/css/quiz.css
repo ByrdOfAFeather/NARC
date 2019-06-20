@@ -34,4 +34,20 @@
 
 #start-button {
     opacity: .5;
+    border: 1px solid black;
+    border-radius: 20px;
+    width: 200px;
+    height: 200px;
+    background-color: black;
+    color: white;
+    position: absolute;
+}
+
+#start-button:hover {
+    opacity: .5 !important;
+    cursor: pointer;
+}
+
+#button-warning {
+    visibility: hidden;
 }

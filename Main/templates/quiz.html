@@ -3,6 +3,9 @@
 {% block scripts %}
     {% load static %}
         <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.0.2/dist/tf.min.js"></script>
+        <!-- Source: https://github.com/harthur/clusterfck/blob/master/lib/kmeans.js -->
+        <script src="{% static 'kmeans.js' %}"></script>
+        <!-- End Source -->
         <script src="{% static 'js/predictors.js' %}"></script>
 {% endblock %}
 {% block css %}
@@ -103,8 +106,8 @@
 
 
         function loadMoreStatistics(results) {
-            // TODO: Assign globals here
             buttonLock = false;
+            document.getElementById("button-warning").style.visibility = "hidden";
             document.getElementById("start-button").style.opacity = "1";
 
             dataSet = results["user_to_page_leaves"];
@@ -120,7 +123,7 @@
 
         function testFunc() {
             if (buttonLock) {
-                return;
+                document.getElementById("button-warning").style.visibility = "visible";
             }
             else {
                 parseData();
@@ -347,8 +350,11 @@
 
     <!-- TODO: Rename function  -->
     <button onclick="testFunc();" id="start-button">Check For Cheaters</button>
+    <p id="button-warning">Please wait for the data to load!</p>
+    <!-- TODO: Figure out what to do with these
     <div id="title"></div>
     <div id="submissions"></div>
+    -->
     <div id="statistics">
         <h1>Important Statistics</h1>
         <div id="std-div">
@@ -369,6 +375,11 @@
         <div id="total-page-leavers">
             <p class="number" id="total-page-leavers-no">0</p>
             <p class="text text-last">Student(s) left the page at least once during the test</p>
+        </div>
+
+        <div>
+            <p id="autoencoder-iterations-display">500000</p>
+            <p id="loss">| | | | | | | | |_</p>
         </div>
     </div>
 
