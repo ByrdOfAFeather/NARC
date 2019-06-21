@@ -1,10 +1,10 @@
 from django.shortcuts import render
+from django.http.response import HttpResponseRedirect
+import requests
 
 
 def index(request):
-	header = request.COOKIES.get("header", "")
-	logged_in = True if header else False
-	return render(request, "home.html", {"logged_in": logged_in})
+	return render(request, "home.html")
 
 
 def courses(request):
@@ -34,3 +34,37 @@ def contact(request):
 def testing(request):
 	return render(request, "model_training.html")
 
+
+def get_client_id(url):
+	# TODO: Implement getting client id based on URL
+	return 10000000000003
+
+
+def oauth_authorization(request):
+	url = request.session["url"]
+	if not url:
+		# TODO: Implement error feature in home page
+		return render(request, "home.html", {"error": True})
+
+	client_id = get_client_id(url)
+	if not client_id:
+		# TODO: Implement error feature in home page
+		return render(request, "home.html", {"error": True})
+
+	code = request.GET.get("code", "")
+	if not request.GET.get("error", "") and code:
+		print(code)
+		state = request.GET.get("state", "")
+		print(state)
+		# TODO: Make State secret
+		if state == "NAMB":
+			final_code = requests.post("https://192.168.1.240/login/oauth2/token", {
+				"grant_type": "authorization_code",
+				"client_id": 3,
+				"client_secret": "IaKqi1heupkW4Cxv8AjhcaxycpkAtQDl4QySgwy5jviJs6BJ7k3UgrFRL3TqLMKN",
+				"redirect_uri": "http://127.0.0.1:8000/oauth_confirm",
+				"code": code,
+				}, verify=False  # TODO: Remeber to make this True in production!
+			)
+
+	return HttpResponseRedirect(f"https://{url}/login/oauth2/auth?client_id={client_id}&response_type=code&state=NAMB&redirect_uri=http://127.0.0.1:8000/oauth_confirm")

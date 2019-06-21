@@ -297,3 +297,11 @@ def delete_data(request):
 	response = JsonResponse({"success": "none"})
 	response.status_code = 200
 	return response
+
+
+# TODO: Fail condition (in particular check for the url to be valid)
+def oauth_url(request):
+	request.session["url"] = request.GET.get("url", "")
+	response = JsonResponse({"success": "none"})
+	response.status_code = 200
+	return response

@@ -16,16 +16,40 @@
         <script type="text/javascript">
             window.onload = function() {
                 alert("Cookies are used on this website!");
+            };
+            function getAPIInfo() {
+                // TODO: Add URL Prompt
+                console.log("Getting user URL");
+                let url = window.prompt("What is your Canvas URL?", "(ex: canvas.instructure.com | stanford.instructure.com)");
+                if (url) {
+                    console.log("Testing token");
+                    // TODO: Here the client id will be based on the URL so I need to make a storage system for that!
+                    $.ajax({
+                        url: '{% url 'canvaswrapper:oauth-url' %}',
+                        method: "GET",
+                        dataType: 'json',
+                        data: {"url": url},
+                        success: function() {
+                            window.location.replace("{% url 'mainpages:oauth-authorization' %}");
+                        },
+                        error: function() {
+                            console.log("Either I don't have access to that canvas or I have bad code!");
+                        }
+                    })
+
+                }
+                else {
+                    alert("You have to provide a URL!");
+                }
             }
         </script>
+
     {% endblock %}
-    {% include 'collectors.html' %}
     <div>
-    <!-- TODO !IMPORTANT!: Remake this into a POST request for security reasons. -->
     <img src ="{% static 'images/login.png' %}" id="login-btn" class="button" onclick='getAPIInfo();' alt="click to login">
     <a href="{% url 'mainpages:about' %}"><img src ="{% static 'images/about.png' %}" id="about-btn" class="button" alt="click to login"></a>
     <a href="{% url 'mainpages:contact' %}"><img src ="{% static 'images/CONTACT.png' %}" id="contact-btn" class="button" alt="click to login"></a>
-{#    <p id="login-text">Login</p>#}
+        {#    <p id="login-text">Login</p>#}
     </div>
     {% if logged_in %}
         <p>
