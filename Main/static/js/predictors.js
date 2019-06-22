@@ -1,8 +1,14 @@
+let dataIndexer = {};
+
 function loadData(dataSet) {
     // TODO: This needs to be made modular to account for different input feature sizes.
     // Based on https://codelabs.developers.google.com/codelabs/tfjs-training-regression/index.html#4
+
     return tf.tidy(() => {
         tf.util.shuffle(dataSet);
+        for (let i=0; i<dataSet.length; i++) {
+            dataIndexer[i] = dataSet[i].id;
+        };
         const inOut = dataSet.map(student => ({
             time_taken: student.time_taken,
             average_time_between_questions: student.average_time_between_questions,
@@ -69,7 +75,6 @@ function loadModel(dataSet) {
             predict();
         }
         else {
-            console.log(tf.memory());
             const printLoss = calcLoss();
             document.getElementById("loss").innerText = printLoss.dataSync()[0];
             printLoss.dispose();
@@ -83,27 +88,78 @@ function loadModel(dataSet) {
         let predictions = decoder.predict(encoder.predict(data));
         let indivError = predictions.sub(data).mean(1);
         let averageError = calcLoss(predictions, data).sqrt();
+        predictions.dispose();
         let errorsCond = indivError.greaterEqual(averageError);
-        let predictionsJS = predictions.arraySync(); 
-        let errorsCondJS = errorsCond.dataSync(); 
+        let dataJS = data.arraySync();
+        let errorsCondJS = errorsCond.dataSync();
         errorsCond.dispose(); 
         predictions.dispose(); 
         indivError.dispose(); 
         averageError.dispose(); 
         
         let anomalies = [];
+
+        // This is for debugging and to be removed.
+        anomalies.push({
+            index: 0,
+            data: dataJS[0]
+        });
+        anomalies.push({
+            index: 1,
+            data: dataJS[1]
+        });
+        // End debugging section
         for (let i = 0; i < errorsCondJS.length; i++) {
             if (errorsCondJS[i]) {
-                anomalies.push(predictionsJS[i]);
+                anomalies.push({
+                    index: i,
+                    data: dataJS[i],
+                });
             }
         }
-
-        kmeans(anomalies);
+        if (anomalies.length <= 1) {
+            let results = document.createElement('p');
+            results.innerText = "No cheaters could be detected!";
+            document.body.appendChild(results);
+        }
+        else {
+            separate(anomalies);
+        }
     }
 
-    function kmeans(anomalies) {
-        console.log(anomalies);
+    function separate(anomalies) {
         console.log("I got here");
+        console.log(anomalies);
+        console.log(dataIndexer);
+        let separations = kmeans(anomalies, 2);
+        console.log(separations);
+        let group_1 = separations[0];
+        let group_2 = separations[1];
+
+        let group_1_page_leave_sum = 0;
+        let group_1_len = group_1.length;
+        for (let i=0; i<group_1_len; i++) {
+            group_1_page_leave_sum += group_1[i].data[2];
+        }
+
+        let group_2_page_leave_sum = 0;
+        let group_2_len = group_2.length;
+        for (let j=0; j<group_2_len; j++) {
+            group_2_page_leave_sum += group_2[j].data[2];
+        }
+
+        let avg_1 = group_1_page_leave_sum / group_1_len;
+        let avg_2 = group_2_page_leave_sum / group_2_len;
+
+        if (avg_1 > avg_2) {
+            for(let i=0; i<group_1_len; i++ ) {
+                console.log(dataIndexer[group_1[i].index]);
+            }
+        } else {
+            for(let i=0; i<group_2_len; i++ ) {
+                console.log(dataIndexer[group_2[i].index]);
+            }
+        }
     }
 }
 

@@ -4,7 +4,7 @@
     {% load static %}
         <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.0.2/dist/tf.min.js"></script>
         <!-- Source: https://github.com/harthur/clusterfck/blob/master/lib/kmeans.js -->
-        <script src="{% static 'kmeans.js' %}"></script>
+        <script src="{% static 'js/kmeans.js' %}"></script>
         <!-- End Source -->
         <script src="{% static 'js/predictors.js' %}"></script>
 {% endblock %}
@@ -312,7 +312,7 @@
                 // TODO: Come back and make this not like this please. Build the list instead of building a temporary dictionary
                 passableData.push(
                     {
-                        "id": currentId,
+                        "id": userIds[i],
                         "page_leaves": currentUser["page_leaves"],
                         "average_time_between_questions": currentUser["average_time_between_questions"],
                         "time_taken": currentUser["time_taken"],
