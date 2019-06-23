@@ -1,9 +1,9 @@
 let dataIndexer = {};
+let currentAction = null;
 
 function loadData(dataSet) {
     // TODO: This needs to be made modular to account for different input feature sizes.
     // Based on https://codelabs.developers.google.com/codelabs/tfjs-training-regression/index.html#4
-
     return tf.tidy(() => {
         tf.util.shuffle(dataSet);
         for (let i=0; i<dataSet.length; i++) {
@@ -26,7 +26,11 @@ function loadData(dataSet) {
 let iterations = parseInt(window.localStorage.getItem("autoencoder_iterations"));
 intervalTracker = {};
 function loadModel(dataSet) {
+    currentAction = document.getElementById("current-action");
+    document.getElementById("autoencoder-iterations-display").innerText = window.localStorage.getItem("autoencoder-iterations");
+    currentAction.innerText = "Building Tensors!";
     const data = loadData(dataSet);
+    currentAction.innerText = "Build Network!";
     const featureSize = 3;
     const layer1 = 10;
     const layer2 = 5;
@@ -67,11 +71,13 @@ function loadModel(dataSet) {
     });
 
     const optimizer = tf.train.adam(.08);
+    currentAction.innerText = "Training Model!";
     intervalTracker.autoencoder = setInterval(trainModel, 1);
     function trainModel() {
         if (iterations === 0) {
             clearInterval(intervalTracker.autoencoder);
             document.getElementById("autoencoder-iterations-display").innerText = iterations;
+            currentAction.innerText = "Measuring Reconstruction Error!";
             predict();
         }
         else {
@@ -128,6 +134,7 @@ function loadModel(dataSet) {
     }
 
     function separate(anomalies) {
+        currentAction.innerText = "Clustering with KMeans!";
         console.log("I got here");
         console.log(anomalies);
         console.log(dataIndexer);

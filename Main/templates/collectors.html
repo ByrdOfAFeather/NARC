@@ -14,10 +14,12 @@
                 success: function (_) {
                     if (confirm('Would you like to allow NARC to save the datasets you run through the program?')) {
                         window.localStorage.setItem("save_data", "true");
+                        window.localStorage.setItem("autoencoder-iterations", "5000");
                         window.location.replace("{% url 'mainpages:courses-view' %}");
                     }
                     else {
                         window.localStorage.setItem("save_data", "");
+                        window.localStorage.setItem("autoencoder-iterations", "5000");
                         window.location.replace("{% url 'mainpages:courses-view' %}");
                     }
                 },
