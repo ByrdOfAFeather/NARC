@@ -43,15 +43,14 @@ def content_helper(request):
 
 
 def get_courses(request):
-	header = request.COOKIES.get("header", "")
-	url = request.COOKIES.get("url", "canvas.instructure.com")
+	header = request.session.get("header", False)
+	url = request.session.get("url", False)
 	if header:
 		header = header.replace("'", "\"")
 		header = json.loads(header)
 		courses = requests.get(
 			"https://{}/api/v1/courses?per_page=50".format(url),
-			headers=header)
-
+			headers=header, verify=False)
 		return content_helper(courses)
 
 	else:
@@ -61,8 +60,8 @@ def get_courses(request):
 
 
 def get_modules(request):
-	header = request.COOKIES.get("header", "")
-	url = request.COOKIES.get("url", "canvas.instructure.com")
+	header = request.session.get("header", False)
+	url = request.session.get("url", False)
 	course_id = request.GET.get("course_id")
 	if header:
 		header = header.replace("'", "\"")
@@ -70,7 +69,7 @@ def get_modules(request):
 
 		modules = requests.get(
 			"https://{}/api/v1/courses/{}/modules?per_page=50".format(url, course_id),
-			headers=header)
+			headers=header, verify=False)
 
 		return content_helper(modules)
 
@@ -81,8 +80,8 @@ def get_modules(request):
 
 
 def get_quizzes(request):
-	header = request.COOKIES.get("header", "")
-	url = request.COOKIES.get("url", "canvas.instructure.com")
+	header = request.session.get("header", False)
+	url = request.session.get("url", False)
 	course_id = request.GET.get("course_id")
 	module_id = request.GET.get("module_id")
 	if header:
@@ -90,7 +89,7 @@ def get_quizzes(request):
 		header = json.loads(header)
 		quizzes = requests.get(
 			"https://{}/api/v1/courses/{}/modules/{}/items".format(url, course_id, module_id),
-			headers=header)
+			headers=header, verify=False)
 		if quizzes.status_code == 200:
 			quizzes = [
 				{"name": items["title"], "id": items["content_id"]}
@@ -112,15 +111,15 @@ def get_quizzes(request):
 
 
 def get_quiz_info(request, quiz_id):
-	header = request.COOKIES.get("header", "")
-	url = request.COOKIES.get("url", "canvas.instructure.com")
+	header = request.sessio.get("header", False)
+	url = request.session.get("url", False)
 	course_id = request.GET.get("course_id")
 	if header:
 		header = header.replace("'", "\"")
 		header = json.loads(header)
 		quiz_info = requests.get(
 			"https://{}/api/v1/courses/{}/quizzes/{}/statistics".format(url, course_id, quiz_id),
-			headers=header)
+			headers=header, verify=False)
 		return content_helper(quiz_info)
 
 	else:
@@ -148,16 +147,18 @@ def find_std_count(std, scores, start_index):
 
 
 def get_quiz_stats(request):
-	header = request.COOKIES.get("header", "")
+	header = request.session.get("header", False)
 	course_id = request.GET.get("course_id", "")
 	quiz_id = request.GET.get("quiz_id", "")
 	if header:
 		header = header.replace("'", "\"")
 		header = json.loads(header)
-		url = request.COOKIES.get("url", "canvas.instructure.com")
+		# TODO: error condition
+		url = request.session.get("url", False)
 		quiz_stats = requests.get(
 			"https://{}/api/v1/courses/{}/quizzes/{}/statistics".format(url, course_id, quiz_id),
-			headers=header
+			headers=header,
+			verify=False
 		)
 		return_json = {}
 		if quiz_stats.status_code == 200:
@@ -183,7 +184,7 @@ def get_quiz_stats(request):
 
 
 def get_quiz_submissions(request):
-	header = request.COOKIES.get("header", "")
+	header = request.session.get("header", False)
 	if header:
 		header = header.replace("'", "\"")
 		header = json.loads(header)
@@ -192,7 +193,8 @@ def get_quiz_submissions(request):
 		link = "https://{}/api/v1/courses/{}/quizzes/{}/submissions".format(url, course_id, quiz_id)
 		submissions = requests.get(
 			link,
-			headers=header
+			headers=header,
+			verify=False
 		)
 
 		users_to_events = {}
@@ -248,7 +250,7 @@ def anonymize_data(json_data):
 def save_data(request):
 
 	json_data = request.POST.get("data", "")
-	token = request.COOKIES.get("header", "")
+	token = request.session.get("header", False)
 	token = token[26:-2]
 	print(token)
 	token = hashlib.sha3_256(token.encode("utf-8")).hexdigest()

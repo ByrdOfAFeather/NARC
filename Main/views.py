@@ -56,7 +56,7 @@ def oauth_authorization(request):
 		print(code)
 		state = request.GET.get("state", "")
 		print(state)
-		# TODO: Make State secret
+		# TODO: Make State secret & Error Condition
 		if state == "NAMB":
 			final_code = requests.post("https://192.168.1.240/login/oauth2/token", {
 				"grant_type": "authorization_code",
@@ -66,5 +66,10 @@ def oauth_authorization(request):
 				"code": code,
 				}, verify=False  # TODO: Remeber to make this True in production!
 			)
+			response = final_code.json()
+
+			request.session["header"] = str({"Authorization": f"Bearer {response['access_token']}"})
+			request.session["refresh_token"] = str({response['refresh_token']})
+			return render(request, "courses.html")
 
 	return HttpResponseRedirect(f"https://{url}/login/oauth2/auth?client_id={client_id}&response_type=code&state=NAMB&redirect_uri=http://127.0.0.1:8000/oauth_confirm")
