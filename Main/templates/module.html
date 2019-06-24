@@ -25,10 +25,8 @@
                     loadQuizData(quizData);
                 }
             },
-            error: function(results) {
-                // TODO: Fail Case
-                console.log("error occurred");
-                console.log(results);
+            error: function() {
+                genericErrorGen("Could not load quizzes!");
             },
          });
 
@@ -82,8 +80,7 @@
                         console.log("I finished here");
                     },
                     error: function(results) {
-                        // TODO: Fail Case
-                        console.log(results)
+                        genericErrorGen("Error loading quiz statistics!");
                     }
                 });
             }

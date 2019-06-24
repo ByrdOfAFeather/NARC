@@ -10,6 +10,9 @@
 {% endblock %}
 
 {% block body %}
+    {% if error %}
+        <p>{{ error }}</p>
+    {% endif %}
     {% block settings_menu %} {% endblock %}
     {% block settings_menu_scripts %}{% endblock %}
     {% block extras %}
@@ -18,12 +21,9 @@
                 alert("Cookies are used on this website!");
             };
             function getAPIInfo() {
-                // TODO: Add URL Prompt
-                console.log("Getting user URL");
                 let url = window.prompt("What is your Canvas URL?", "(ex: canvas.instructure.com | stanford.instructure.com)");
                 if (url) {
                     console.log("Testing token");
-                    // TODO: Here the client id will be based on the URL so I need to make a storage system for that!
                     $.ajax({
                         url: '{% url 'canvaswrapper:oauth-url' %}',
                         method: "GET",
@@ -33,7 +33,9 @@
                             window.location.replace("{% url 'mainpages:oauth-authorization' %}");
                         },
                         error: function() {
-                            console.log("Either I don't have access to that canvas or I have bad code!");
+                            let errorP = document.createElement("p");
+                            errorP.innerText = "Could not load authorization!";
+                            document.body.appendChild(errorP);
                         }
                     });
                 }

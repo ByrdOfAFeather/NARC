@@ -14,10 +14,8 @@
             success: function(results) {
                 loadGeneric(JSON.parse(results["success"]["data"]), "module")
             },
-            error: function(results) {
-                // TODO: Fail Case
-                console.log("error occurred");
-                console.log(results);
+            error: function() {
+                genericErrorGen("Couldn't access modules!");
             },
          });
 

@@ -1,9 +1,9 @@
 from django.db import models
-import datetime
 
 
 class User(models.Model):
-	hashed_token = models.CharField(max_length=65, unique=True)
+	hashed_name_id = models.CharField(max_length=65, unique=True)
+	auth_token = models.CharField(max_length=65)
 
 
 class Dataset(models.Model):

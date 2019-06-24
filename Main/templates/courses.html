@@ -13,9 +13,8 @@
                 console.log("Courses received!");
                 loadGeneric(JSON.parse(results["success"]["data"]), "course");
             },
-            error: function(results) {
-                // TODO: Fail Case
-                console.log(results);
+            error: function() {
+                genericErrorGen("Could not load courses!")
             }
         });
 

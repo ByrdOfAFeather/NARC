@@ -121,7 +121,7 @@
         }
 
 
-        function testFunc() {
+        function buttonCheck() {
             if (buttonLock) {
                 document.getElementById("button-warning").style.visibility = "visible";
             }
@@ -348,8 +348,7 @@
 
     </script>
 
-    <!-- TODO: Rename function  -->
-    <button onclick="testFunc();" id="start-button">Check For Cheaters</button>
+    <button onclick="buttonCheck();" id="start-button">Check For Cheaters</button>
     <p id="button-warning">Please wait for the data to load!</p>
     <!-- TODO: Figure out what to do with these
     <div id="title"></div>

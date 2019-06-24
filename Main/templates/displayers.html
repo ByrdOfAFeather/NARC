@@ -80,5 +80,12 @@
                 {#progressBar.hide();#}
             }
         }
+
+
+        function genericErrorGen(error) {
+            let errorP = document.createElement("p");
+            errorP.innerText = error;
+            document.body.appendChild(errorP);
+        }
     </script>
 {% endblock %}
