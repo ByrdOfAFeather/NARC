@@ -33,6 +33,7 @@
 }
 
 #start-button {
+    float: left;
     opacity: .5;
     border: 1px solid black;
     border-radius: 20px;
@@ -40,14 +41,19 @@
     height: 200px;
     background-color: black;
     color: white;
-    position: absolute;
 }
 
 #start-button:hover {
-    opacity: .5 !important;
+    opacity: .7 !important;
     cursor: pointer;
 }
 
 #button-warning {
     visibility: hidden;
+}
+
+#results {
+    /*visibility: hidden;*/
+    /*float: right;*/
+    display: inline-block;
 }

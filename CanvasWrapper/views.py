@@ -205,7 +205,7 @@ def get_quiz_submissions(request):
 			submission_id = submissions["id"]
 			users_to_submissions[user_id] = submissions
 			local_page_leaves = 0
-			events = requests.get(link + "/{}/events?per_page=50000".format(submission_id),
+			events = requests.get(link + f"/{submission_id}/events?per_page=50000",
 			                      headers=header)
 			if events.status_code == 200:
 				events_json = events.json()
@@ -216,6 +216,8 @@ def get_quiz_submissions(request):
 
 				users_to_page_leaves[user_id] = {}
 				users_to_page_leaves[user_id]["page_leaves"] = local_page_leaves
+				profile = requests.get(f"https://{url}/api/v1/users/{user_id}/profile", headers=header)
+				users_to_page_leaves[user_id]["name"] = profile.json()["name"]
 				if local_page_leaves > 0:
 					unique_page_leavers += 1
 				users_to_events[user_id] = events.json()
@@ -242,11 +244,11 @@ def anonymize_data(json_data):
 	json_data = json.loads(json_data)
 	for index, items in enumerate(json_data):
 		items["id"] = index
+		items["name"] = hashlib.sha3_256(items["name"].encode("utf-8")).hexdigest()
 	return json.dumps(json_data)
 
 
 def save_data(request):
-
 	json_data = request.POST.get("data", "")
 	token = request.COOKIES.get("header", "")
 	token = token[26:-2]
