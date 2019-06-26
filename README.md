@@ -17,3 +17,6 @@ K-Means for Javascript (clusterfck): https://github.com/harthur/clusterfck/blob/
 Tensorflow for Javascript: https://github.com/tensorflow/tfjs
 
 Django: https://github.com/django/django
+
+(Inspired from) Harvard/django-canvas-oauth: https://github.com/Harvard-University-iCommons/django-canvas-oauth
+

@@ -1,91 +1,98 @@
 {% extends 'progressbar.html' %}
-{% block generic-functions %}
-    <script type="text/javascript">
-        function randomColor() {
-            let no1 = Math.floor(Math.random() * Math.floor(126));
-            let no2 = Math.floor(Math.random() * Math.floor(126));
-            let no3 = Math.floor(Math.random() * Math.floor(126));
-            return "rgb(" + no1 + ","  + no2 + "," + no3 + ")";
-        }
-
-
-        function genericGen(name, link, genericName, index) {
-            let genericGenLink = document.createElement("a");
-            genericGenLink.href = link;
-            genericGenLink.style.opacity = "0";
-            genericGenLink.className = genericName + "-link" + " generic-link";
-            let newGeneric = document.createElement("div");
-            newGeneric.className = genericName + " generic";
-            newGeneric.id = genericName + "-" + index;
-            let newGenericName = document.createElement("p");
-            newGenericName.className = genericName + "-name" + " generic-name";
-            newGenericName.id = genericName + "-" + index + "-text";
-            newGenericName.innerText = name;
-            newGeneric.appendChild(newGenericName);
-            genericGenLink.appendChild(newGeneric);
-            newGeneric.style.marginTop = '50px';
-            newGeneric.style.backgroundColor = randomColor();
-            return genericGenLink;
-        }
-
-
-        function fadeIn(genericDiv, index, localList) {
-            genericDiv.style.opacity = (parseFloat(genericDiv.style.opacity) + .02).toString();
-            if (parseFloat(genericDiv.style.opacity) === 1) {
-                clearInterval(localList[index]);
-            }
-        }
-
-
-        function floatIn(genericName, index, localList) {
-            let div = document.getElementById(genericName + "-" + index);
-            div.style.marginTop = parseInt(div.style.marginTop, 10) - 1 + "px";
-            if (!(parseInt(div.style.marginTop, 10) > 0)) {
-                clearInterval(localList[index]);
-            }
-        }
-
-
-        function loadGeneric(generics, genericName) {
-            let courseLength = generics.length;
-            {#let progressBar = $('#progressbar');#}
-            let fadeIns = [];
-            let floatIns = [];
-            if (courseLength === 0) {
-                {#progressBar.hide();#}
-                let error = document.createElement('p');
-                error.innerText = "No " + genericName + "s were found! make sure you are in the right place!";
-                document.body.appendChild(error);
-            } else {
-                for (let i = 0; i < courseLength; i++) {
-                    console.log(generics[i]);
-                    let currentGeneric = generics[i];
-                    let genericLink = genericGen(
-                        currentGeneric["name"].replace("\\u0026", "&"),
-                        linkGen(currentGeneric["id"]),
-                        genericName,
-                        i
-                    );
-                    if (genericName === "quiz") { $("#quizzes").append(genericLink);}
-                    $("#" + genericName + "s").append(genericLink);
-                    {#progressBar.progressbar("value", progress + ((1 / courseLength) * 100));#}
-                    fadeIns.push(setInterval(function () {
-                        fadeIn(genericLink, i, fadeIns);
-                    }, 15));
-                    floatIns.push(setInterval(function() {
-                        floatIn(genericName, i, floatIns);
-                    }, 15));
-
+{% block body-container %}
+    {% if request.user.is_authenticated %}
+        {% block body %}{% endblock %}
+        {% block generic-functions %}
+            <script type="text/javascript">
+                function randomColor() {
+                    let no1 = Math.floor(Math.random() * Math.floor(126));
+                    let no2 = Math.floor(Math.random() * Math.floor(126));
+                    let no3 = Math.floor(Math.random() * Math.floor(126));
+                    return "rgb(" + no1 + ","  + no2 + "," + no3 + ")";
                 }
-                {#progressBar.hide();#}
-            }
-        }
 
 
-        function genericErrorGen(error) {
-            let errorP = document.createElement("p");
-            errorP.innerText = error;
-            document.body.appendChild(errorP);
-        }
-    </script>
+                function genericGen(name, link, genericName, index) {
+                    let genericGenLink = document.createElement("a");
+                    genericGenLink.href = link;
+                    genericGenLink.style.opacity = "0";
+                    genericGenLink.className = genericName + "-link" + " generic-link";
+                    let newGeneric = document.createElement("div");
+                    newGeneric.className = genericName + " generic";
+                    newGeneric.id = genericName + "-" + index;
+                    let newGenericName = document.createElement("p");
+                    newGenericName.className = genericName + "-name" + " generic-name";
+                    newGenericName.id = genericName + "-" + index + "-text";
+                    newGenericName.innerText = name;
+                    newGeneric.appendChild(newGenericName);
+                    genericGenLink.appendChild(newGeneric);
+                    newGeneric.style.marginTop = '50px';
+                    newGeneric.style.backgroundColor = randomColor();
+                    return genericGenLink;
+                }
+
+
+                function fadeIn(genericDiv, index, localList) {
+                    genericDiv.style.opacity = (parseFloat(genericDiv.style.opacity) + .02).toString();
+                    if (parseFloat(genericDiv.style.opacity) === 1) {
+                        clearInterval(localList[index]);
+                    }
+                }
+
+
+                function floatIn(genericName, index, localList) {
+                    let div = document.getElementById(genericName + "-" + index);
+                    div.style.marginTop = parseInt(div.style.marginTop, 10) - 1 + "px";
+                    if (!(parseInt(div.style.marginTop, 10) > 0)) {
+                        clearInterval(localList[index]);
+                    }
+                }
+
+
+                function loadGeneric(generics, genericName) {
+                    let courseLength = generics.length;
+                    {#let progressBar = $('#progressbar');#}
+                    let fadeIns = [];
+                    let floatIns = [];
+                    if (courseLength === 0) {
+                        {#progressBar.hide();#}
+                        let error = document.createElement('p');
+                        error.innerText = "No " + genericName + "s were found! make sure you are in the right place!";
+                        document.body.appendChild(error);
+                    } else {
+                        for (let i = 0; i < courseLength; i++) {
+                            console.log(generics[i]);
+                            let currentGeneric = generics[i];
+                            let genericLink = genericGen(
+                                currentGeneric["name"].replace("\\u0026", "&"),
+                                linkGen(currentGeneric["id"]),
+                                genericName,
+                                i
+                            );
+                            if (genericName === "quiz") { $("#quizzes").append(genericLink);}
+                            $("#" + genericName + "s").append(genericLink);
+                            {#progressBar.progressbar("value", progress + ((1 / courseLength) * 100));#}
+                            fadeIns.push(setInterval(function () {
+                                fadeIn(genericLink, i, fadeIns);
+                            }, 15));
+                            floatIns.push(setInterval(function() {
+                                floatIn(genericName, i, floatIns);
+                            }, 15));
+
+                        }
+                        {#progressBar.hide();#}
+                    }
+                }
+
+
+                function genericErrorGen(error) {
+                    let errorP = document.createElement("p");
+                    errorP.innerText = error;
+                    document.body.appendChild(errorP);
+                }
+            </script>
+        {% endblock %}
+    {% else %}
+        <p>You have to log in first <a href="{% url 'mainpages:index' %}">here!</a></p>
+    {% endif %}
 {% endblock %}

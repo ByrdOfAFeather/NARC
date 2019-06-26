@@ -1,10 +1,10 @@
 from django.contrib import admin
-from CanvasWrapper.models import User, Dataset, UserToDataset
+from CanvasWrapper.models import AuthorizedUser, Dataset, UserToDataset
 
 # Register your models here.
-@admin.register(User)
+@admin.register(AuthorizedUser)
 class UserAdmin(admin.ModelAdmin):
-	model = User
+	model = AuthorizedUser
 
 
 @admin.register(Dataset)

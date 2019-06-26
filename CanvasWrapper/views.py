@@ -4,7 +4,7 @@ import hashlib
 from django.http import QueryDict
 from django.shortcuts import render
 from django.http import JsonResponse
-from CanvasWrapper.models import User, Dataset, UserToDataset
+from CanvasWrapper.models import AuthorizedUser, Dataset, UserToDataset
 from math import floor
 
 
@@ -25,12 +25,12 @@ def error_generator(error, error_code):
 	return response
 
 
+# TODO CHECK GETS FOR IF A USER IS NOT LOGGED IN & Get URL When it Expires
 def get_courses(request):
-	header = request.session.get("header", False)
-	url = request.session.get("url", False)
+	header = {"Authorization": f"Bearer {request.user.canvas_oauth2_token.access_token}"}
+	url = request.COOKIES.get("url", False)
+	print(url)
 	if header:
-		header = header.replace("'", "\"")
-		header = json.loads(header)
 		courses = requests.get(
 			"https://{}/api/v1/courses?per_page=50".format(url),
 			headers=header, verify=False)
@@ -41,13 +41,10 @@ def get_courses(request):
 
 
 def get_modules(request):
-	header = request.session.get("header", False)
-	url = request.session.get("url", False)
+	header = {"Authorization": f"Bearer {request.user.canvas_oauth2_token.access_token}"}
+	url = request.COOKIES.get("url", False)
 	course_id = request.GET.get("course_id")
 	if header:
-		header = header.replace("'", "\"")
-		header = json.loads(header)
-
 		modules = requests.get(
 			"https://{}/api/v1/courses/{}/modules?per_page=50".format(url, course_id),
 			headers=header, verify=False)
@@ -59,13 +56,11 @@ def get_modules(request):
 
 
 def get_quizzes(request):
-	header = request.session.get("header", False)
-	url = request.session.get("url", False)
+	header = {"Authorization": f"Bearer {request.user.canvas_oauth2_token.access_token}"}
+	url = request.COOKIES.get("url", False)
 	course_id = request.GET.get("course_id")
 	module_id = request.GET.get("module_id")
 	if header:
-		header = header.replace("'", "\"")
-		header = json.loads(header)
 		quizzes = requests.get(
 			"https://{}/api/v1/courses/{}/modules/{}/items".format(url, course_id, module_id),
 			headers=header, verify=False)
@@ -88,12 +83,10 @@ def get_quizzes(request):
 
 
 def get_quiz_info(request, quiz_id):
-	header = request.sessio.get("header", False)
-	url = request.session.get("url", False)
+	header = {"Authorization": f"Bearer {request.user.canvas_oauth2_token.access_token}"}
+	url = request.COOKIES.get("url", False)
 	course_id = request.GET.get("course_id")
 	if header:
-		header = header.replace("'", "\"")
-		header = json.loads(header)
 		quiz_info = requests.get(
 			"https://{}/api/v1/courses/{}/quizzes/{}/statistics".format(url, course_id, quiz_id),
 			headers=header, verify=False)
@@ -122,14 +115,12 @@ def find_std_count(std, scores, start_index):
 
 
 def get_quiz_stats(request):
-	header = request.session.get("header", False)
+	header = {"Authorization": f"Bearer {request.user.canvas_oauth2_token.access_token}"}
 	course_id = request.GET.get("course_id", "")
 	quiz_id = request.GET.get("quiz_id", "")
 	if header:
-		header = header.replace("'", "\"")
-		header = json.loads(header)
 
-		url = request.session.get("url", False)
+		url = request.COOKIES.get("url", False)
 		if not url:
 			return error_generator("Could not find url!", 404)
 
@@ -162,11 +153,9 @@ def get_quiz_stats(request):
 
 
 def get_quiz_submissions(request):
-	header = request.session.get("header", False)
+	header = {"Authorization": f"Bearer {request.user.canvas_oauth2_token.access_token}"}
 	if header:
-		header = header.replace("'", "\"")
-		header = json.loads(header)
-		url = request.session.get("url", False)
+		url = request.COOKIES.get("url", False)
 		course_id, quiz_id = request.GET.get("course_id"), request.GET.get("quiz_id")
 		link = "https://{}/api/v1/courses/{}/quizzes/{}/submissions".format(url, course_id, quiz_id)
 		submissions = requests.get(
@@ -225,14 +214,15 @@ def anonymize_data(json_data):
 
 
 def save_data(request):
+	# TODO: Remake to work with user model
 	json_data = request.POST.get("data", "")
-	token = request.session.get("header", False)
+	token = request.COOKIES.get("header", False)
 	token = token[26:-2]
 	print(token)
 	token = hashlib.sha3_256(token.encode("utf-8")).hexdigest()
 	print(token)
 	# TODO: Create Fail Conditions
-	current_user = User.objects.get(hashed_token=token)
+	current_user = AuthorizedUser.objects.get(hashed_token=token)
 	json_data = anonymize_data(json_data)
 
 	current_data = Dataset.objects.create(
@@ -256,7 +246,7 @@ def saved_data(request):
 	if token:
 		token = token[26:-2]
 		token = hashlib.sha3_256(token.encode("utf-8")).hexdigest()
-		user = User.objects.get(
+		user = AuthorizedUser.objects.get(
 			hashed_token=token
 		)
 		if user:
@@ -279,7 +269,7 @@ def delete_data(request):
 
 # TODO: Fail condition (in particular check for the url to be valid)
 def oauth_url(request):
-	request.session["url"] = request.GET.get("url", "")
 	response = JsonResponse({"success": "none"})
+	response.set_cookie("url", request.GET.get("url", ""))
 	response.status_code = 200
 	return response
