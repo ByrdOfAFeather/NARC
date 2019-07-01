@@ -1,8 +1,15 @@
-function loadData(dataSet) {
+let dataIndexer = {};
+let currentAction = null;
+
+
+function loadData(dataSet, idLinker) {
     // TODO: This needs to be made modular to account for different input feature sizes.
     // Based on https://codelabs.developers.google.com/codelabs/tfjs-training-regression/index.html#4
     return tf.tidy(() => {
         tf.util.shuffle(dataSet);
+        for (let i=0; i<dataSet.length; i++) {
+            dataIndexer[i] = dataSet[i].name;
+        }
         const inOut = dataSet.map(student => ({
             time_taken: student.time_taken,
             average_time_between_questions: student.average_time_between_questions,
@@ -20,7 +27,11 @@ function loadData(dataSet) {
 let iterations = parseInt(window.localStorage.getItem("autoencoder_iterations"));
 intervalTracker = {};
 function loadModel(dataSet) {
+    currentAction = document.getElementById("current-action");
+    document.getElementById("autoencoder-iterations-display").innerText = window.localStorage.getItem("autoencoder-iterations");
+    currentAction.innerText = "Building Tensors!";
     const data = loadData(dataSet);
+    currentAction.innerText = "Build Network!";
     const featureSize = 3;
     const layer1 = 10;
     const layer2 = 5;
@@ -61,15 +72,16 @@ function loadModel(dataSet) {
     });
 
     const optimizer = tf.train.adam(.08);
+    currentAction.innerText = "Training Model!";
     intervalTracker.autoencoder = setInterval(trainModel, 1);
     function trainModel() {
         if (iterations === 0) {
             clearInterval(intervalTracker.autoencoder);
             document.getElementById("autoencoder-iterations-display").innerText = iterations;
+            currentAction.innerText = "Measuring Reconstruction Error!";
             predict();
         }
         else {
-            console.log(tf.memory());
             const printLoss = calcLoss();
             document.getElementById("loss").innerText = printLoss.dataSync()[0];
             printLoss.dispose();
@@ -83,27 +95,134 @@ function loadModel(dataSet) {
         let predictions = decoder.predict(encoder.predict(data));
         let indivError = predictions.sub(data).mean(1);
         let averageError = calcLoss(predictions, data).sqrt();
+        predictions.dispose();
         let errorsCond = indivError.greaterEqual(averageError);
-        let predictionsJS = predictions.arraySync(); 
-        let errorsCondJS = errorsCond.dataSync(); 
+        let dataJS = data.arraySync();
+        let errorsCondJS = errorsCond.dataSync();
         errorsCond.dispose(); 
         predictions.dispose(); 
         indivError.dispose(); 
         averageError.dispose(); 
         
         let anomalies = [];
+        let nonAnomalies = [];
+
+        // This is for debugging and to be removed.
+        anomalies.push({
+            index: 0,
+            data: dataJS[0]
+        });
+        anomalies.push({
+            index: 1,
+            data: dataJS[1]
+        });
+        // End debugging section
+
         for (let i = 0; i < errorsCondJS.length; i++) {
             if (errorsCondJS[i]) {
-                anomalies.push(predictionsJS[i]);
+                anomalies.push({
+                    index: i,
+                    data: dataJS[i],
+                });
+            }
+            else {
+                nonAnomalies.push({
+                    index: i,
+                    data: dataJS[i]
+                });
             }
         }
 
-        kmeans(anomalies);
+        console.log(nonAnomalies);
+        if (anomalies.length <= 1) {
+            let results = document.createElement('p');
+            results.innerText = "No cheaters could be detected!";
+            document.body.appendChild(results);
+        }
+        else {
+            separate(anomalies, nonAnomalies);
+        }
     }
 
-    function kmeans(anomalies) {
-        console.log(anomalies);
-        console.log("I got here");
+    function separate(anomalies, nonAnomalies) {
+        currentAction.innerText = "Clustering with KMeans!";
+        let separations = kmeans(anomalies, 2);
+        currentAction.innerText = "Labeling Clusters!";
+        let group_1 = separations[0];
+        let group_2 = separations[1];
+
+        let group_1_page_leave_sum = 0;
+        let group_1_len = group_1.length;
+        for (let i=0; i<group_1_len; i++) {
+            group_1_page_leave_sum += group_1[i].data[2];
+        }
+
+        let group_2_page_leave_sum = 0;
+        let group_2_len = group_2.length;
+        for (let j=0; j<group_2_len; j++) {
+            group_2_page_leave_sum += group_2[j].data[2];
+        }
+
+        let avg_1 = group_1_page_leave_sum / group_1_len;
+        let avg_2 = group_2_page_leave_sum / group_2_len;
+
+        let cheaterSection = document.getElementById("cheaters");
+        let nonCheaterSection = document.getElementById("innocents");
+        if (avg_1 > avg_2) {
+            for(let i=0; i<group_1_len; i++ ) {
+                let currentCheater = document.createElement("p");
+                currentCheater.innerText = dataIndexer[group_1[i].index];
+                cheaterSection.append(currentCheater);
+            }
+            let addNoCheater = true;
+            let addNoAnomaly = true;
+            let loopLength = nonAnomalies.length > group_2_len ? nonAnomalies.length : group_2_len;
+            for (let i=0; i<loopLength; i++) {
+                if (i >= group_2_len) {
+                    addNoCheater = false;
+                }
+                else if (i >= nonAnomalies.length) {
+                    addNoAnomaly = false;
+                }
+                if (addNoCheater) {
+                    let currentNoCheat = document.createElement("p");
+                    currentNoCheat.innerText = dataIndexer[group_2[i].index];
+                    nonCheaterSection.appendChild(currentNoCheat);
+                }
+                if (addNoAnomaly) {
+                    let currentNoAnomaly = document.createElement("p");
+                    currentNoAnomaly.innerText = dataIndexer[nonAnomalies[i].index];
+                    nonCheaterSection.appendChild(currentNoAnomaly);
+                }
+            }
+        } else {
+            for(let i=0; i<group_2_len; i++ ) {
+                let currentCheater = document.createElement("p");
+                currentCheater.innerText = dataIndexer[group_2[i].index];
+                cheaterSection.append(currentCheater);
+            }
+            let addNoCheater = true;
+            let addNoAnomaly = true;
+            let loopLength = nonAnomalies.length > group_1_len ? nonAnomalies.length : group_1_len;
+            for (let i=0; i<loopLength; i++) {
+                if (i >= group_1_len) {
+                    addNoCheater = false;
+                }
+                else if (i >= nonAnomalies.length) {
+                    addNoAnomaly = false;
+                }
+                if (addNoCheater) {
+                    let currentNoCheat = document.createElement("p");
+                    currentNoCheat.innerText = dataIndexer[group_1[i].index];
+                    nonCheaterSection.appendChild(currentNoCheat);
+                }
+                if (addNoAnomaly) {
+                    let currentNoAnomaly = document.createElement("p");
+                    currentNoAnomaly.innerText = dataIndexer[nonAnomalies[i].index];
+                    nonCheaterSection.appendChild(currentNoAnomaly);
+                }
+            }
+        }
     }
 }
 

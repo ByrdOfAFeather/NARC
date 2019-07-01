@@ -4,7 +4,7 @@
     {% load static %}
         <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.0.2/dist/tf.min.js"></script>
         <!-- Source: https://github.com/harthur/clusterfck/blob/master/lib/kmeans.js -->
-        <script src="{% static 'kmeans.js' %}"></script>
+        <script src="{% static 'js/kmeans.js' %}"></script>
         <!-- End Source -->
         <script src="{% static 'js/predictors.js' %}"></script>
 {% endblock %}
@@ -13,12 +13,59 @@
         <link rel="stylesheet" type="text/css" href="{% static 'css/quiz.css' %}">
 {% endblock %}
 {% block body %}
+    <!-- TODO: Rename function  -->
+    <button onclick="buttonCheck();" id="start-button">Check For Cheaters</button>
+    <p id="button-warning">Please wait for the data to load!</p>
+    <!-- TODO: Figure out what to do with these
+    <div id="title"></div>
+    <div id="submissions"></div>
+    -->
+
+    <div id="results">
+        <div id="cheaters">
+            <p>example1</p>
+        </div>
+        <div id="innocents">
+            <p>example2</p>
+        </div>
+    </div>
+
+    <div id="statistics">
+        <h1>Important Statistics</h1>
+        <div id="std-div">
+            <p class="number" id="std-no">0</p>
+            <p class="text">Standard Deviation</p>
+        </div>
+
+        <div id="std-no-div">
+            <p class="number" id="std-above-no">0</p>
+            <p class="text" id="std-above-desc">Student(s) above or at 2 standard deviations</p>
+        </div>
+
+        <div id="total-page-leaves">
+            <p class="number" id="total-page-leaves-no">0</p>
+            <p class="text">Total Page Leave(s)</p>
+        </div>
+
+        <div id="total-page-leavers">
+            <p class="number" id="total-page-leavers-no">0</p>
+            <p class="text text-last">Student(s) left the page at least once during the test</p>
+        </div>
+
+        <div id="information-display">
+            <p id="current-action">Waiting to start training!</p>
+            <p id="autoencoder-iterations-display">500000</p>
+            <p id="loss">| | | | | | | | |_</p>
+        </div>
+    </div>
+
     <script type="text/javascript">
         let idDict = {};
         let dataSet = {};
         let eventSet = {};
         let submissionSet = {};
         passableData = [];
+        let actionTrack = document.getElementById("current-action");
 
         // TODO: Add warning when the button lock is true and the button is pressed
         let buttonLock = true;
@@ -35,7 +82,7 @@
             randomChangeNumber(document.getElementById("std-above-no"));
         }, 50);
 
-
+        actionTrack.innerText = "Loading Basic Quiz Stats!";
         $.ajax({
             "url": "{% url 'canvaswrapper:quiz-get-stats' %}",
             "method": "GET",
@@ -87,7 +134,7 @@
 
         }
 
-
+        actionTrack.innerText = "Loading Testing Data!";
         $.ajax({
             url: "{% url 'canvaswrapper:quiz-get-submissions'%}",
             method: "GET",
@@ -134,6 +181,7 @@
         function buildData(userData, eventData, buildRel=false) {
             // TODO: This function is a bit odd since it uses local variables but is being called with globals
             // so it's modifying globals in place, making the locals irrelevant
+            actionTrack.innerText = "Building Dataset!";
             let userIds = Object.keys(userData);
             let currentEvents = null;
             let currentId = null;
@@ -312,7 +360,8 @@
                 // TODO: Come back and make this not like this please. Build the list instead of building a temporary dictionary
                 passableData.push(
                     {
-                        "id": currentId,
+                        "id": userIds[i],
+                        "name": currentUser["name"],
                         "page_leaves": currentUser["page_leaves"],
                         "average_time_between_questions": currentUser["average_time_between_questions"],
                         "time_taken": currentUser["time_taken"],
@@ -347,39 +396,4 @@
         }
 
     </script>
-
-    <button onclick="buttonCheck();" id="start-button">Check For Cheaters</button>
-    <p id="button-warning">Please wait for the data to load!</p>
-    <!-- TODO: Figure out what to do with these
-    <div id="title"></div>
-    <div id="submissions"></div>
-    -->
-    <div id="statistics">
-        <h1>Important Statistics</h1>
-        <div id="std-div">
-            <p class="number" id="std-no">0</p>
-            <p class="text">Standard Deviation</p>
-        </div>
-
-        <div id="std-no-div">
-            <p class="number" id="std-above-no">0</p>
-            <p class="text" id="std-above-desc">Student(s) above or at 2 standard deviations</p>
-        </div>
-
-        <div id="total-page-leaves">
-            <p class="number" id="total-page-leaves-no">0</p>
-            <p class="text">Total Page Leave(s)</p>
-        </div>
-
-        <div id="total-page-leavers">
-            <p class="number" id="total-page-leavers-no">0</p>
-            <p class="text text-last">Student(s) left the page at least once during the test</p>
-        </div>
-
-        <div>
-            <p id="autoencoder-iterations-display">500000</p>
-            <p id="loss">| | | | | | | | |_</p>
-        </div>
-    </div>
-
 {% endblock %}

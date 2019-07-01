@@ -1,0 +1,36 @@
+{% block collectors %}
+<script type="text/javascript">
+    function getAPIInfo() {
+        // TODO: Add URL Prompt
+        console.log("Getting user API Key");
+        let token = window.prompt("Insert API Token Below!", "example: 1234567910");
+        if (token) {
+            console.log("Testing token");
+            $.ajax({
+                url: "{% url 'canvaswrapper:test-token' %}",
+                method: "GET",
+                dataType: "json",
+                data: {"token": token},
+                success: function (_) {
+                    if (confirm('Would you like to allow NARC to save the datasets you run through the program?')) {
+                        window.localStorage.setItem("save_data", "true");
+                        window.localStorage.setItem("autoencoder-iterations", "5000");
+                        window.location.replace("{% url 'mainpages:courses-view' %}");
+                    }
+                    else {
+                        window.localStorage.setItem("save_data", "");
+                        window.localStorage.setItem("autoencoder-iterations", "5000");
+                        window.location.replace("{% url 'mainpages:courses-view' %}");
+                    }
+                },
+                error: function (_) {
+                    alert("Token not valid! Please generate a new one!");
+                }
+            });
+        }
+        else {
+            console.log("No token was provided, exiting!");
+        }
+    }
+</script>
+{% endblock %}

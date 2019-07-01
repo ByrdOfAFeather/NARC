@@ -2,6 +2,7 @@ from datetime import timedelta
 
 import requests
 import json
+import hashlib
 from django.http import QueryDict
 from django.utils import timezone
 from django.shortcuts import render
@@ -225,7 +226,7 @@ def get_quiz_submissions(request):
 		submission_id = submissions["id"]
 		users_to_submissions[user_id] = submissions
 		local_page_leaves = 0
-		events = requests.get(link + "/{}/events?per_page=50000".format(submission_id),
+		events = requests.get(link + f"/{submission_id}/events?per_page=50000",
 		                      headers=header, verify=False)
 		print(f"THIS IS EVENTS {events.status_code}", f"{events.content}")
 		if events.status_code == 200:
@@ -235,11 +236,13 @@ def get_quiz_submissions(request):
 					total_page_leaves += 1
 					local_page_leaves += 1
 
-			users_to_page_leaves[user_id] = {}
-			users_to_page_leaves[user_id]["page_leaves"] = local_page_leaves
-			if local_page_leaves > 0:
-				unique_page_leavers += 1
-			users_to_events[user_id] = events.json()
+				users_to_page_leaves[user_id] = {}
+				users_to_page_leaves[user_id]["page_leaves"] = local_page_leaves
+				profile = requests.get(f"{url}/api/v1/users/{user_id}/profile", headers=header, verify=False)
+				users_to_page_leaves[user_id]["name"] = profile.json()["name"]
+				if local_page_leaves > 0:
+					unique_page_leavers += 1
+				users_to_events[user_id] = events.json()
 		elif events.status_code == 400 and "quiz log auditing must be enabled" in events.json()["message"]:
 			return error_generator("Quiz log auditing it not enabled! This isn't going to work until you enable that!", 400)
 		else:
@@ -261,6 +264,7 @@ def anonymize_data(json_data):
 	json_data = json.loads(json_data)
 	for index, items in enumerate(json_data):
 		items["id"] = index
+		items["name"] = hashlib.sha3_256(items["name"].encode("utf-8")).hexdigest()
 	return json.dumps(json_data)
 
 
