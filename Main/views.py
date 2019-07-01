@@ -11,6 +11,8 @@ import hashlib
 
 
 def index(request):
+	if request.user.is_authenticated:
+		return HttpResponseRedirect(request.build_absolute_uri("/courses/"))
 	return render(request, "home.html")
 
 
@@ -39,9 +41,9 @@ def contact(request):
 
 
 def get_client_id(url):
-	key = APIKey.objects.filter(url=url)[0]
+	key = APIKey.objects.filter(url=url)
 	if key:
-		return key
+		return key[0]
 	else:
 		return None
 
@@ -51,7 +53,7 @@ def oauth_authorization(request):
 	if not url:
 		return render(request, "home.html", {"error": "Could not find the URL! Are you sure you provided one?"})
 
-	client = get_client_id(url)
+	client = get_client_id(f"https://{url}")
 	if not client:
 		return render(request, "home.html", {"error": "We do not support this version of Canvas!"})
 
@@ -72,18 +74,25 @@ def oauth_authorization(request):
 			)
 			print(final_code.content)
 			if final_code.status_code != 200:
-				print("This is the issue")
 				return render(request, "home.html", {"error": "There was a problem authorizing your request."})
 
 			response = final_code.json()
 
 			username = hashlib.sha3_256((str(response['user']['id']) + url).encode("utf-8")).hexdigest()
-			if User.objects.filter(username=username):
-				return render(request, "home.html", {"error:": "user already logged in!"})
+			test_user = User.objects.filter(username=username)
+			if test_user:
+				user = authenticate(request, username=username, password=username)
+				login(request, user)
+				return HttpResponseRedirect(request.build_absolute_uri("/courses/"))
 
+			# This takes some explaining. The user model is simply so that Django knows how to link up everything
+			# there's no way to actually login to this from the user's perspective, only in this particular view.
+			# The url & id allow us to have a unique key and also serve as the password, since the password is required.
+			# Bonus: since the urls have to exist in the database for the canvas installation, there's no way to cheese
+			# this request and login, even if you know the user's id and password!
 			new_user = User.objects.create_user(
 				username=username,
-				password=response["refresh_token"]
+				password=username
 			)
 
 			AuthorizedUser.objects.create(
@@ -91,9 +100,10 @@ def oauth_authorization(request):
 				access_token=response["access_token"],
 				refresh_token=response["refresh_token"],
 				expires=timezone.now() + timedelta(seconds=response["expires_in"]),
+				url=f"https://{url}"
 			)
 
-			user = authenticate(request, username=username, password=response["refresh_token"])
+			user = authenticate(request, username=username, password=username)
 			login(request, user)
 			return render(request, "courses.html")
 	else:

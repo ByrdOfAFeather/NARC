@@ -17,6 +17,7 @@ class AuthorizedUser(models.Model):
 	expires = models.DateTimeField()
 	created_on = models.DateTimeField(auto_now_add=True)
 	updated_on = models.DateTimeField(auto_now=True)
+	url = models.URLField()
 
 	def expires_within(self, delta):
 		if not self.expires:

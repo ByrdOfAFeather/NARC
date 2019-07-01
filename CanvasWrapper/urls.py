@@ -3,14 +3,14 @@ from . import views
 
 app_name = "canvaswrapper"
 urlpatterns = [
-	path("getcourses", view=views.get_courses, name="courses-get"),
-	path("getmodules", view=views.get_modules, name="modules-get"),
-	path("getquizzes", view=views.get_quizzes, name="quizzes-get"),
-	path("getquizinfo/<int:quiz_id>", view=views.get_quiz_info, name="quiz-get-info"),
-	path("getquizstats", view=views.get_quiz_stats, name="quiz-get-stats"),
-	path("getquizsubmissions", view=views.get_quiz_submissions, name="quiz-get-submissions"),
-	path("savedata", view=views.save_data, name="save-data"),
-	path("saveddata", view=views.saved_data, name="saved-data"),
-	path("deletedata", view=views.delete_data, name="delete-local-data"),
-	path("oauth_url", view=views.oauth_url, name="oauth-url")
+	path("getcourses/", view=views.get_courses, name="courses-get"),
+	path("getmodules/", view=views.get_modules, name="modules-get"),
+	path("getquizzes/", view=views.get_quizzes, name="quizzes-get"),
+	path("getquizinfo/<int:quiz_id>/", view=views.get_quiz_info, name="quiz-get-info"),
+	path("getquizstats/", view=views.get_quiz_stats, name="quiz-get-stats"),
+	path("getquizsubmissions/", view=views.get_quiz_submissions, name="quiz-get-submissions"),
+	path("savedata/", view=views.save_data, name="save-data"),
+	path("saveddata/", view=views.saved_data, name="saved-data"),
+	path("deletedata/", view=views.delete_data, name="delete-local-data"),
+	path("oauth_url/", view=views.set_oauth_url_cookie, name="oauth-url")
 ]
