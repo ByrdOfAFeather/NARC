@@ -48,6 +48,7 @@ def expire_checker(request):
 		return error_generator("We do not support this version of Canvas!", 401)
 
 	if request.user.canvas_oauth2_token.expires_within(timedelta(seconds=60)):
+		print("I'M WORKING ON GETTING A NEW TOKEN")
 		new_token = requests.post(f"{url}/login/oauth2/token", {
 			"grant_type": "refresh_token",
 			"client_id": client.client_id,
@@ -59,7 +60,9 @@ def expire_checker(request):
 			new_token_data = new_token.json()
 			request.user.canvas_oauth2_token.access_token = new_token_data["access_token"]
 			request.user.canvas_oauth2_token.expires = timezone.now() + timedelta(seconds=new_token_data["expires_in"])
+			request.user.canvas_oauth2_token.save()
 		else:
+			print(new_token.content)
 			print("ERROR GETTING NEW TOKEN")
 			return error_generator("Error getting new token! Please login again!", 401)
 	else: return
@@ -228,7 +231,6 @@ def get_quiz_submissions(request):
 		local_page_leaves = 0
 		events = requests.get(link + f"/{submission_id}/events?per_page=50000",
 		                      headers=header, verify=False)
-		print(f"THIS IS EVENTS {events.status_code}", f"{events.content}")
 		if events.status_code == 200:
 			events_json = events.json()
 			for event in events_json["quiz_submission_events"]:
