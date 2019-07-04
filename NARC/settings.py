@@ -23,7 +23,7 @@ PROJECT_DIR = os.path.dirname(__file__)
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "I'm a secret key!")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get("DJANGO_DEBUG", '') is not False
+DEBUG = os.environ.get("DJANGO_DEBUG", '') != 'False'
 
 ALLOWED_HOSTS = ['narc-cheat.herokuapp.com', '127.0.0.1']
 
