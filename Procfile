@@ -1,0 +1,1 @@
+web: gunicorn NARC.wsgi --log-file -
