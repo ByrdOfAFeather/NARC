@@ -1,0 +1,20 @@
+.description {
+    margin-left: 25%;
+    margin-right: 25%;
+    font-size: 1em;
+    line-height: 2;
+    font-family: Avantgarde, TeX Gyre Adventor, URW Gothic L, sans-serif;
+}
+
+.foot-note {
+    margin-left: 25%;
+    margin-right: 25%;
+    font-size: .8em;
+    line-height: 1.5;
+    font-family: Avantgarde, TeX Gyre Adventor, URW Gothic L, sans-serif;
+}
+
+.title {
+    text-align: center;
+    font-family: Avantgarde, TeX Gyre Adventor, URW Gothic L, sans-serif;
+}

@@ -46,6 +46,17 @@
 <body>
     {% block extras %}
     {% endblock %}
+    <script type="text/javascript">
+        // taken from https://stackoverflow.com/a/12815379
+        $(window).scroll(function(){
+            $("#home-button").css({"margin-top": ($(window).scrollTop()) + "px", "margin-left":($(window).scrollLeft()) + "px"});
+        });
+
+
+        function goHome() {
+                window.location.replace("{% url 'mainpages:index' %}");
+        }
+    </script>
     {% block settings_menu_scripts %}
         <script type="text/javascript">
             window.onclick = function(event) {
@@ -54,11 +65,6 @@
                     openSettings();
                 }
             };
-
-
-            function goHome() {
-                window.location.replace("{% url 'mainpages:courses-view' %}");
-            }
 
 
             function openSettings() {

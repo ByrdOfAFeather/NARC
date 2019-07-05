@@ -11,8 +11,6 @@ import hashlib
 
 
 def index(request):
-	if request.user.is_authenticated:
-		return HttpResponseRedirect(request.build_absolute_uri("/courses/"))
 	return render(request, "home.html")
 
 
@@ -70,9 +68,8 @@ def oauth_authorization(request):
 				"client_secret": client.client_secret,
 				"redirect_uri": "http://127.0.0.1:8000/oauth_confirm",
 				"code": code,
-				}, verify=False  # TODO: Remember to make this True in production!
+				}, verify=False is client.dev
 			)
-			print(final_code.content)
 			if final_code.status_code != 200:
 				return render(request, "home.html", {"error": "There was a problem authorizing your request."})
 
@@ -81,6 +78,11 @@ def oauth_authorization(request):
 			username = hashlib.sha3_256((str(response['user']['id']) + url).encode("utf-8")).hexdigest()
 			test_user = User.objects.filter(username=username)
 			if test_user:
+				oauth = AuthorizedUser.objects.get(user=test_user[0])
+				oauth.access_token = response["access_token"]
+				oauth.refresh_token = response["refresh_token"]
+				oauth.expires = timezone.now() + timedelta(seconds=response["expires_in"])
+				oauth.save()
 				user = authenticate(request, username=username, password=username)
 				login(request, user)
 				return HttpResponseRedirect(request.build_absolute_uri("/courses/"))

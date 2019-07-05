@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% block title %}<title>About</title>{% endblock %}
+{% block css %}
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/about.css' %}">
+{% endblock %}
+{% block body %}
+    {% block settings_menu %} {% endblock %}
+    {% block settings_menu_scripts %}{% endblock %}
+    <h1 class="title">What It Is:</h1>
+    <p class="description">NARC is a machine learning project developed initially as a final project for my
+        High School. Back then, it relied on the user being on windows and having the technical capabilities to install
+        the software manually. It also had some poor design choices in terms of building the datasets that it ran on and
+        getting the data from Canvas (it used put requests for get endpoints). NARC 1.0.0 is a reboot of the project
+        after speaking with some of its previous users. It aims to remake NARC into something much more practical and
+        extend the user base beyond my local high school.
+    </p>
+    <br>
+    <h1 class="title">How It Works:</h1>
+    <p class="description">At launch, NARC is going to work on a somewhat simple autoencoder system. This
+        means that it’s going to take in testing data and separate the data into two groups: anomalous test takers
+        (people who don’t have testing data that looks like everyone else) and non- anomalous test takers (people who
+        seem to have nearly the same testing data). From there it will use a process called “KMeans” which will take the
+        anomalous test takers and try to separate them into two groups one being cheaters and the other being test
+        takers who don’t follow the norm (high performing or low performing students will typically fit into this
+        group). Finally, the group with the highest average page leaves will be identified as the cheater group.
+    </p>
+    <br>
+    <h1 class="title">The Problems:</h1>
+    <h2 class="title">Problem 1 - It's Inconsistent</h2>
+    <p class="description">The autoencoder process relies on a small neural network. I won’t go into all the
+        mathematics behind it here, but when the autoencoder is first initialized it gets random numbers. These random
+        numbers are changed as the network letting it better understand the data. Now the BEST set of numbers for the
+        network is not always found, almost always the network finds a sort of “good enough” set of numbers and isn’t
+        correctly able to continue finding the best numbers. An autoencoder, for NARC 1.0.0 at least, needs to be
+        re-trained on each new test. This is because what is a typical completion time on a science test might be
+        different than a reading test and might completely throw the “good enough” set of numbers out of the windows for
+        the best data.* Therefore, when NARC is run on the same test twice (while, technically, NARC could save the
+        model for the same test, it’s still inconsistent in principle, if not in practice), it will produce results that
+        do not align with the previous run.
+    </p>
+    <p class="foot-note">
+        *A quick note: there could be an easy fix for this. I’ve come up with the idea of putting all the values placed
+        into the network relative to the local averages of a test, but this method is untested, and I no longer have
+        access to testing data. Thus, at launch, I’m sticking with what I’ve already tested and seen work somewhat well.
+    </p>
+    <br>
+    <h2 class="title">Problem 2 - Its Performance Is Horrible</h2>
+    <p class="description">NARC is based entirely on unsupervised learning. This means that when it trains,
+        it does not know which points of data represent a cheater and which ones do not. Thus, training needs to be done
+        on each new set of data to find what an average user looks like. It is quite inefficient to do this, rather than
+        a supervised model which is already pre-trained.
+    </p>
+    <br>
+    <h1 class="title">Plans:</h1>
+    <p class="description"> NARC could be rebuilt to be a supervised model and potentially drop the need for
+        input data such as “page_leaves” altogether. However, the most significant setback currently is a lack of robust
+        testing data. That’s where this website comes in. By opting into sharing any data you run through NARC, you are
+        assisting in building a new model that will solve the two most significant issues listed above. All data is
+        anonymized before being put into the database, as can be seen by the code here(). The only data that is saved is
+        what is of interest to building the model (time taken, page leaves, etc) and can be permanently deleted at any
+        time. The data uploaded to the site will iteratively be uploaded publicly so that anyone can attempt to build a
+        model in a similar guise to NARC. Emails will be sent out before these datasets are released so that any data
+        that someone wishes to be deleted can be deleted before it gets added.
+    </p>
+{% endblock %}

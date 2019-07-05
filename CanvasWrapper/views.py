@@ -3,13 +3,19 @@ from datetime import timedelta
 import requests
 import json
 import hashlib
-from django.http import QueryDict
+from django.http import QueryDict, HttpResponseRedirect
 from django.utils import timezone
 from django.shortcuts import render
 from django.http import JsonResponse
 from CanvasWrapper.models import Dataset, UserToDataset
 from math import floor
 from Main.models import APIKey
+
+
+def test_token(token, url, dev):
+	simple_request = requests.get(f"https://{url}/api/v1/courses", headers={"Authorization": f"Bearer {token}"},
+	                              verify=False is dev)
+	return simple_request.status_code == 200
 
 
 def content_helper(request):
@@ -55,46 +61,42 @@ def expire_checker(request):
 			"client_secret": client.client_secret,
 			"redirect_uri": "http://127.0.0.1:8000/oauth_confirm",
 			"refresh_token": request.user.canvas_oauth2_token.refresh_token,
-		}, verify=False)  # TODO: Remember to make this True in production!
+		}, verify=False is client.dev)  # TODO: Remember to make this True in production!
 		if new_token.status_code == 200:
 			new_token_data = new_token.json()
 			request.user.canvas_oauth2_token.access_token = new_token_data["access_token"]
 			request.user.canvas_oauth2_token.expires = timezone.now() + timedelta(seconds=new_token_data["expires_in"])
 			request.user.canvas_oauth2_token.save()
 		else:
-			print(new_token.content)
-			print("ERROR GETTING NEW TOKEN")
-			return error_generator("Error getting new token! Please login again!", 401)
-	else: return
+			return error_generator("Error getting new token! Please login again!", 401), None
+	else: return None, client
 
 
 def get_courses(request):
 	error = expire_checker(request)
 	url = request.user.canvas_oauth2_token.url
-	if error is not None:
-		return error
+	if error[0] is not None:
+		return error[0]
+	client = error[1]
 	header = {"Authorization": f"Bearer {request.user.canvas_oauth2_token.access_token}"}
-	if header:
-		courses = requests.get(
-			"{}/api/v1/courses?per_page=50".format(url),
-			headers=header, verify=False)
-		return content_helper(courses)
-
-	else:
-		return error_generator("invalid session, unauthorized", 401)
+	courses = requests.get(
+		"{}/api/v1/courses?per_page=50".format(url),
+		headers=header, verify=False is client.dev)
+	return content_helper(courses)
 
 
 def get_modules(request):
 	error = expire_checker(request)
 	url = request.user.canvas_oauth2_token.url
-	if error is not None:
-		return error
+	if error[0] is not None:
+		return error[0]
+	client = error[1]
 	header = {"Authorization": f"Bearer {request.user.canvas_oauth2_token.access_token}"}
 	course_id = request.GET.get("course_id")
 	if header:
 		modules = requests.get(
 			"{}/api/v1/courses/{}/modules?per_page=50".format(url, course_id),
-			headers=header, verify=False)
+			headers=header, verify=False is client.dev)
 
 		return content_helper(modules)
 
@@ -105,15 +107,16 @@ def get_modules(request):
 def get_quizzes(request):
 	error = expire_checker(request)
 	url = request.user.canvas_oauth2_token.url
-	if error is not None:
-		return error
+	if error[0] is not None:
+		return error[0]
+	client = error[1]
 	header = {"Authorization": f"Bearer {request.user.canvas_oauth2_token.access_token}"}
 	course_id = request.GET.get("course_id")
 	module_id = request.GET.get("module_id")
 	if header:
 		quizzes = requests.get(
 			"{}/api/v1/courses/{}/modules/{}/items".format(url, course_id, module_id),
-			headers=header, verify=False)
+			headers=header, verify=False is client.dev)
 		if quizzes.status_code == 200:
 			quizzes = [
 				{"name": items["title"], "id": items["content_id"]}
@@ -135,14 +138,15 @@ def get_quizzes(request):
 def get_quiz_info(request, quiz_id):
 	error = expire_checker(request)
 	url = request.user.canvas_oauth2_token.url
-	if error is not None:
-		return error
+	if error[0] is not None:
+		return error[0]
+	client = error[1]
 	header = {"Authorization": f"Bearer {request.user.canvas_oauth2_token.access_token}"}
 	course_id = request.GET.get("course_id")
 	if header:
 		quiz_info = requests.get(
 			"{}/api/v1/courses/{}/quizzes/{}/statistics".format(url, course_id, quiz_id),
-			headers=header, verify=False)
+			headers=header, verify=False is client.dev)
 		return content_helper(quiz_info)
 
 	else:
@@ -173,8 +177,9 @@ def find_std_count(std, scores, start_index):
 def get_quiz_stats(request):
 	error = expire_checker(request)
 	url = request.user.canvas_oauth2_token.url
-	if error is not None:
-		return error
+	if error[0] is not None:
+		return error[0]
+	client = error[1]
 	header = {"Authorization": f"Bearer {request.user.canvas_oauth2_token.access_token}"}
 	course_id = request.GET.get("course_id", "")
 	quiz_id = request.GET.get("quiz_id", "")
@@ -182,7 +187,7 @@ def get_quiz_stats(request):
 	quiz_stats = requests.get(
 		"{}/api/v1/courses/{}/quizzes/{}/statistics".format(url, course_id, quiz_id),
 		headers=header,
-		verify=False
+		verify=False is client.dev
 	)
 
 	return_json = {}
@@ -208,15 +213,16 @@ def get_quiz_submissions(request):
 	# TODO: Remake to user only one user dict
 	error = expire_checker(request)
 	url = request.user.canvas_oauth2_token.url
-	if error is not None:
-		return error
+	if error[0] is not None:
+		return error[0]
+	client = error[1]
 	header = {"Authorization": f"Bearer {request.user.canvas_oauth2_token.access_token}"}
 	course_id, quiz_id = request.GET.get("course_id"), request.GET.get("quiz_id")
 	link = "{}/api/v1/courses/{}/quizzes/{}/submissions".format(url, course_id, quiz_id)
 	submissions = requests.get(
 		link,
 		headers=header,
-		verify=False
+		verify=False is client.dev
 	)
 
 	users_to_events = {}
@@ -230,7 +236,7 @@ def get_quiz_submissions(request):
 		users_to_submissions[user_id] = submissions
 		local_page_leaves = 0
 		events = requests.get(link + f"/{submission_id}/events?per_page=50000",
-		                      headers=header, verify=False)
+		                      headers=header, verify=False is client.dev)
 		if events.status_code == 200:
 			events_json = events.json()
 			for event in events_json["quiz_submission_events"]:
@@ -240,7 +246,7 @@ def get_quiz_submissions(request):
 
 				users_to_page_leaves[user_id] = {}
 				users_to_page_leaves[user_id]["page_leaves"] = local_page_leaves
-				profile = requests.get(f"{url}/api/v1/users/{user_id}/profile", headers=header, verify=False)
+				profile = requests.get(f"{url}/api/v1/users/{user_id}/profile", headers=header, verify=False is client.dev)
 				users_to_page_leaves[user_id]["name"] = profile.json()["name"]
 				if local_page_leaves > 0:
 					unique_page_leavers += 1
@@ -312,7 +318,16 @@ def delete_data(request):
 
 
 def set_oauth_url_cookie(request):
-	response = JsonResponse({"success": "none"})
-	response.set_cookie("url", request.GET.get("url", ""))
-	response.status_code = 200
-	return response
+	url = request.GET.get("url", "")
+	client = get_client_id(f"https://{url}")
+	if client is not None:
+		if request.user.is_authenticated:
+			if test_token(request.user.canvas_oauth2_token.access_token, url, client.dev) and \
+					f"https://{url}" in request.user.canvas_oauth2_token.url:
+				return error_generator("User already logged in on this domain!", 406)
+		response = JsonResponse({"success": "none"})
+		response.set_cookie("url", request.GET.get("url", ""))
+		response.status_code = 200
+		return response
+	else:
+		return error_generator("Unsupported version of canvas", 404)

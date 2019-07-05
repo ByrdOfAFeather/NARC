@@ -18,7 +18,6 @@
     /* Font Work */
     /*font-family: 'Consolas', 'Deja Vu Sans Mono', 'Bitstream Vera Sans Mono', monospace;*/
     /*font-size: 2em;*/
-
 }
 
 #about-btn {
@@ -41,15 +40,6 @@
     /*background: #0e680e;*/
     opacity: .5;
     cursor: pointer;
-}
-
-#login-text {
-    /* Centering */
-    -webkit-transform: translate(-67%,-50.3%);
-    transform: translate(-67,-50.3%);
-    position: absolute;
-    top: 67%;
-    left: 50.3%;
 }
 
 /* https://jqueryui.com/progressbar/#label */

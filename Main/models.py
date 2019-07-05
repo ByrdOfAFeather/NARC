@@ -6,3 +6,4 @@ class APIKey(models.Model):
 	client_id = models.CharField(max_length=15)
 	client_secret = models.CharField(max_length=65)
 	state = models.CharField(max_length=10)
+	dev = models.BooleanField(default=False)
