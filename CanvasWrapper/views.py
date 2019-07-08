@@ -2,7 +2,7 @@ from datetime import timedelta
 
 import requests
 import json
-import hashlib
+import random as rand
 from django.http import QueryDict, HttpResponseRedirect
 from django.utils import timezone
 from django.shortcuts import render
@@ -266,13 +266,16 @@ def get_quiz_submissions(request):
 
 
 def anonymize_data(json_data):
-	# Technically, the original ID isn't that revealing as long as the users are in separate instructure domains.
-	# However, in my experience, users in the same domain (even students!) can look up users based on ID. So
-	# it's better to just go ahead and assign incrementing numbers to the ids.
+	"""
+	A function to save the data in a style anonymized in order to be in compliance with FERPA. For more information
+	see: https://studentprivacy.ed.gov/sites/default/files/resource_document/file/data_deidentification_terms.pdf
+	:param json_data:
+	:return:
+	"""
 	json_data = json.loads(json_data)
 	for index, items in enumerate(json_data):
-		items["id"] = index
-		items["name"] = hashlib.sha3_256(items["name"].encode("utf-8")).hexdigest()
+		items["id"] = rand.randint(0, 100000000)
+		items["name"] = "null"
 	return json.dumps(json_data)
 
 

@@ -55,5 +55,12 @@
 #results {
     /*visibility: hidden;*/
     /*float: right;*/
+    font-size: 1em;
     display: inline-block;
+    border: 1px solid black;
+    border-radius: 20px;
+    padding: 10px;
+    color: white;
+    background-color: black;
+    font-family: Avantgarde, TeX Gyre Adventor, URW Gothic L, sans-serif;
 }

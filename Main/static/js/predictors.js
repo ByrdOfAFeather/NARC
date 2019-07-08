@@ -1,7 +1,7 @@
 let dataIndexer = {};
 let currentAction = null;
 
-
+let iterations;
 function loadData(dataSet, idLinker) {
     // TODO: This needs to be made modular to account for different input feature sizes.
     // Based on https://codelabs.developers.google.com/codelabs/tfjs-training-regression/index.html#4
@@ -24,11 +24,11 @@ function loadData(dataSet, idLinker) {
     });
 }
 
-let iterations = parseInt(window.localStorage.getItem("autoencoder_iterations"));
+
 intervalTracker = {};
 function loadModel(dataSet) {
+    iterations = parseInt(window.localStorage.getItem("autoencoder_iterations"));
     currentAction = document.getElementById("current-action");
-    document.getElementById("autoencoder-iterations-display").innerText = window.localStorage.getItem("autoencoder-iterations");
     currentAction.innerText = "Building Tensors!";
     const data = loadData(dataSet);
     currentAction.innerText = "Build Network!";
@@ -106,7 +106,6 @@ function loadModel(dataSet) {
         
         let anomalies = [];
         let nonAnomalies = [];
-
         // This is for debugging and to be removed.
         anomalies.push({
             index: 0,
@@ -117,6 +116,7 @@ function loadModel(dataSet) {
             data: dataJS[1]
         });
         // End debugging section
+
 
         for (let i = 0; i < errorsCondJS.length; i++) {
             if (errorsCondJS[i]) {
@@ -136,7 +136,7 @@ function loadModel(dataSet) {
         console.log(nonAnomalies);
         if (anomalies.length <= 1) {
             let results = document.createElement('p');
-            results.innerText = "No cheaters could be detected!";
+            results.innerText = "No cheaters could be detected! (None of the testing data looked out of the normal).";
             document.body.appendChild(results);
         }
         else {

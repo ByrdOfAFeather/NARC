@@ -30,11 +30,19 @@
                         dataType: 'json',
                         data: {"url": url},
                         success: function() {
+                            if (window.confirm("Would you like to allow NARC to save data?")) {
+                                window.localStorage.setItem("save_data", "true");
+                                window.localStorage.setItem("autoencoder-iterations", "5000");
+                            }
+                            else {
+                                window.localStorage.setItem("save_data", "true");
+                                window.localStorage.setItem("autoencoder-iterations", "5000");
+                            }
                             window.location.replace("{% url 'mainpages:oauth-authorization' %}");
                         },
                         error: function(results) {
                             if (results.status === 404) {
-                                console.log("we do not support this version of canvas");
+                                alert("This deployment of Canvas is not supported!");
                             }
                             if (results.status === 406) {
                                 window.location.replace("{% url 'mainpages:courses-view' %}");
