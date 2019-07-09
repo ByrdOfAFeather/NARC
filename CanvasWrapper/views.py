@@ -4,14 +4,16 @@ import requests
 import json
 import random as rand
 import os
+import pandas as pd
 from django.views.decorators.csrf import csrf_exempt
 from django.http import QueryDict, HttpResponseRedirect
 from django.utils import timezone
 from django.shortcuts import render
 from django.http import JsonResponse
+from Main.models import APIKey
+from CanvasWrapper.predictors import AutoEncoder
 from CanvasWrapper.models import Dataset, UserToDataset
 from math import floor
-from Main.models import APIKey
 
 
 def test_token(token, url, dev):
@@ -339,8 +341,9 @@ def set_oauth_url_cookie(request):
 
 
 def parse_data(data):
-	# TODO: Return data organized in a format that the network will take
-	return data
+	frame = pd.DataFrame.from_dict(data, orient="index")
+	numpy_frame = frame.loc[list(frame.index)].drop(["id", "name"], axis=1).values
+	return numpy_frame
 
 # TODO: More research is required into potential security flaws of this endpoint
 @csrf_exempt
@@ -353,7 +356,7 @@ def mobile_endpoint(request):
 		if data["secret"] == os.environ.get("MOBILESECRET", ""):
 			data = parse_data(data)
 			predictor = AutoEncoder(data)
-			# predictor.seperate()
+			anons, non_anons = predictor.separate()
 			response = JsonResponse({"success": "nice!"})
 			response.status_code = 200
 			return response
