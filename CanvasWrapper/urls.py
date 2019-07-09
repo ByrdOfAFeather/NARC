@@ -12,5 +12,6 @@ urlpatterns = [
 	path("savedata/", view=views.save_data, name="save-data"),
 	path("saveddata/", view=views.saved_data, name="saved-data"),
 	path("deletedata/", view=views.delete_data, name="delete-local-data"),
-	path("oauth_url/", view=views.set_oauth_url_cookie, name="oauth-url")
+	path("oauth_url/", view=views.set_oauth_url_cookie, name="oauth-url"),
+	path("postmobile/", view=views.mobile_endpoint, name="mobile-endpoint")
 ]

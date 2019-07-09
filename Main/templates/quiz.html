@@ -297,7 +297,8 @@
                     }
                 }
             }
-
+            // TODO: Overall denominator is broken as it goes for everything when only time taken and page leaves
+            // will have the same denominator
             let rel_average_time_between = overall_time_between_sum / overall_denominator;
             let rel_time_taken = overall_time_taken_sum / overall_denominator;
             let rel_page_leaves = overall_page_leaves_sum / overall_denominator;

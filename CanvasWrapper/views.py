@@ -3,6 +3,7 @@ from datetime import timedelta
 import requests
 import json
 import random as rand
+import os
 from django.http import QueryDict, HttpResponseRedirect
 from django.utils import timezone
 from django.shortcuts import render
@@ -334,3 +335,18 @@ def set_oauth_url_cookie(request):
 		return response
 	else:
 		return error_generator("Unsupported version of canvas", 404)
+
+
+def mobile_endpoint(request):
+	data = request.POST.get("data", "")
+	data = json.loads(data)
+
+	# Temp security solution for mobile app while in development
+	if data["secret"] == os.environ.get("MOBILESECRET", ""):
+		response = JsonResponse({"success": "nice!"})
+		response.status_code = 200
+		return response
+	else:
+		response = JsonResponse({"error": "shoot!"})
+		response.status_code = 402
+		return response
