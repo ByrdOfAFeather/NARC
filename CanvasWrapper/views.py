@@ -338,18 +338,30 @@ def set_oauth_url_cookie(request):
 		return error_generator("Unsupported version of canvas", 404)
 
 
+def parse_data(data):
+	# TODO: Return data organized in a format that the network will take
+	return data
+
 # TODO: More research is required into potential security flaws of this endpoint
 @csrf_exempt
 def mobile_endpoint(request):
 	data = request.POST.get("data", "")
 	data = json.loads(data)
+	print(data)
+	try:
+		# Temp security solution for mobile app while in development
+		if data["secret"] == os.environ.get("MOBILESECRET", ""):
+			data = parse_data(data)
+			predictor = AutoEncoder(data)
+			# predictor.seperate()
+			response = JsonResponse({"success": "nice!"})
+			response.status_code = 200
+			return response
+		else:
+			response = JsonResponse({"error": "shoot!"})
+			response.status_code = 402
+			return response
 
-	# Temp security solution for mobile app while in development
-	if data["secret"] == os.environ.get("MOBILESECRET", ""):
-		response = JsonResponse({"success": "nice!"})
-		response.status_code = 200
-		return response
-	else:
-		response = JsonResponse({"error": "shoot!"})
-		response.status_code = 402
-		return response
+	except KeyError:
+		error_generator("Invalid JSON!", 400)
+

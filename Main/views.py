@@ -1,3 +1,5 @@
+# IMPORTANT TODO: ENSURE COMPLIANCE WITH COPPA BY CHECKING AGES VIA CANVAS INFO RETRIEVIED FROM USER PROFILES
+
 from django.shortcuts import render
 from django.http.response import HttpResponseRedirect
 from django.contrib.auth.models import User
