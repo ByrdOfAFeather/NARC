@@ -4,6 +4,7 @@ import requests
 import json
 import random as rand
 import os
+from django.views.decorators.csrf import csrf_exempt
 from django.http import QueryDict, HttpResponseRedirect
 from django.utils import timezone
 from django.shortcuts import render
@@ -337,6 +338,8 @@ def set_oauth_url_cookie(request):
 		return error_generator("Unsupported version of canvas", 404)
 
 
+# TODO: More research is required into potential security flaws of this endpoint
+@csrf_exempt
 def mobile_endpoint(request):
 	data = request.POST.get("data", "")
 	data = json.loads(data)
