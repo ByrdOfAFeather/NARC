@@ -354,6 +354,8 @@ def mobile_endpoint(request):
 		# Temp security solution for mobile app while in development
 		if data["secret"] == os.environ.get("MOBILESECRET", ""):
 			del data["secret"]
+			# TODO Actually interpert this data
+			del data["storage"]
 			data = parse_data(data)
 			cheaters, non_cheaters = classify(data)
 			response = JsonResponse({"success": {"data":
