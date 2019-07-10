@@ -11,7 +11,7 @@ from django.utils import timezone
 from django.shortcuts import render
 from django.http import JsonResponse
 from Main.models import APIKey
-from CanvasWrapper.predictors import AutoEncoder
+from CanvasWrapper.predictors import classify
 from CanvasWrapper.models import Dataset, UserToDataset
 from math import floor
 
@@ -342,8 +342,7 @@ def set_oauth_url_cookie(request):
 
 def parse_data(data):
 	frame = pd.DataFrame.from_dict(data, orient="index")
-	numpy_frame = frame.loc[list(frame.index)].drop(["id", "name"], axis=1).values
-	return numpy_frame
+	return frame
 
 # TODO: More research is required into potential security flaws of this endpoint
 @csrf_exempt
@@ -354,10 +353,14 @@ def mobile_endpoint(request):
 	try:
 		# Temp security solution for mobile app while in development
 		if data["secret"] == os.environ.get("MOBILESECRET", ""):
+			del data["secret"]
 			data = parse_data(data)
-			predictor = AutoEncoder(data)
-			anons, non_anons = predictor.separate()
-			response = JsonResponse({"success": "nice!"})
+			cheaters, non_cheaters = classify(data)
+			response = JsonResponse({"success": {"data":
+				                                     {
+					                                     "cheaters": cheaters,
+					                                     "non_cheaters": non_cheaters
+				                                     }}})
 			response.status_code = 200
 			return response
 		else:
