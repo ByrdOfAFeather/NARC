@@ -35,3 +35,7 @@ class UserToDataset(models.Model):
 	user = models.ForeignKey(AuthorizedUser, on_delete=models.CASCADE)
 	dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE)
 
+
+class Queuer(models.Model):
+	unique_name = models.TextField(unique=True)
+	currently_running = models.BooleanField(default=False)

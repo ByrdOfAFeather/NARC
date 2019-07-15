@@ -2,18 +2,80 @@ from datetime import timedelta
 
 import requests
 import json
-import random as rand
 import os
+import base64
+import threading
+import random as rand
 import pandas as pd
 from django.views.decorators.csrf import csrf_exempt
-from django.http import QueryDict, HttpResponseRedirect
+from django.http import QueryDict
 from django.utils import timezone
 from django.shortcuts import render
 from django.http import JsonResponse
 from Main.models import APIKey
 from CanvasWrapper.predictors import classify
-from CanvasWrapper.models import Dataset, UserToDataset
+from CanvasWrapper.models import Dataset, UserToDataset, Queuer
 from math import floor
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.fernet import Fernet
+
+
+def get_key(encryption_key):
+	encryption_key = encryption_key.encode()
+	salt = os.environ.get("SALT_KEY", "I'm just a placeholder for development!").encode()
+	kdf = PBKDF2HMAC(
+		algorithm=hashes.SHA256(),
+		length=32,
+		salt=salt,
+		iterations=100000,
+		backend=default_backend()
+	)
+	return base64.urlsafe_b64encode(kdf.derive(encryption_key))
+
+
+def push_notification(cheaters, non_cheaters):
+	push_json = {"notification": {
+		"title": "Data Processed!",
+		"body": "The results for your recent request are ready to be reviewed!",
+	},
+		"data": {
+			"click_action": "FLUTTER_NOTIFICATION_CLICK",
+			"sound": "default",
+			"status": "done",
+			"screen": "results",
+			"results": {
+				"cheaters": str(cheaters)[2:-1],
+				"non_cheaters": str(non_cheaters)[2:-1],
+			}
+		}
+	}
+	print("DATA IS READY TO BE RETRIEVED")
+	pass
+
+
+def process_mobile_data(data):
+	# TODO Implement queuing system
+	del data["secret"]
+	# TODO Actually interpret this data
+	storage = data["storage"]
+	del data["storage"]
+	key = get_key(data["encryption_key"])
+	del data["encryption_key"]
+
+	data = parse_data(data)
+	cheaters, non_cheaters = classify(data)
+	cheaters, non_cheaters = json.dumps(cheaters).encode(), json.dumps(non_cheaters).encode()
+
+	encryptor = Fernet(key)
+	cheaters = encryptor.encrypt(cheaters)
+	non_cheaters = encryptor.encrypt(non_cheaters)
+	queue = Queuer.objects.get(unique_name="Task Queue")
+
+	queue.currently_running = False
+	queue.save()
+	push_notification(cheaters, non_cheaters)
 
 
 def test_token(token, url, dev):
@@ -347,22 +409,24 @@ def parse_data(data):
 # TODO: More research is required into potential security flaws of this endpoint
 @csrf_exempt
 def mobile_endpoint(request):
+	# TODO Clean Data
 	data = request.POST.get("data", "")
 	data = json.loads(data)
-	print(data)
+	queuer = Queuer.objects.get(unique_name="Task Queue") if \
+		Queuer.objects.filter(unique_name="Task Queue").count() else \
+		Queuer.objects.create(unique_name="Task Queue", currently_running=False)
 	try:
 		# Temp security solution for mobile app while in development
 		if data["secret"] == os.environ.get("MOBILESECRET", ""):
-			del data["secret"]
-			# TODO Actually interpert this data
-			del data["storage"]
-			data = parse_data(data)
-			cheaters, non_cheaters = classify(data)
-			response = JsonResponse({"success": {"data":
-				                                     {
-					                                     "cheaters": cheaters,
-					                                     "non_cheaters": non_cheaters
-				                                     }}})
+			if queuer.currently_running:
+				return error_generator("A task is already running, try again later!", 202)
+
+			queuer.currently_running = True
+			queuer.save()
+			# process_mobile_data.dely(data, task_id)
+			task = threading.Thread(target=process_mobile_data, args=[data])
+			task.start()
+			response = JsonResponse({"success": {"data": "Your data is being processed and will be returned soon!"}})
 			response.status_code = 200
 			return response
 		else:
@@ -372,4 +436,3 @@ def mobile_endpoint(request):
 
 	except KeyError:
 		error_generator("Invalid JSON!", 400)
-
