@@ -25,7 +25,7 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "I'm a secret key!")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get("DJANGO_DEBUG", '') != 'False'
 
-ALLOWED_HOSTS = ['narc-cheat.herokuapp.com', 'www.byrdof.dev', '127.0.0.1']
+ALLOWED_HOSTS = ['narc-cheat.herokuapp.com', 'www.byrdof.dev', '127.0.0.1', '192.168.1.89']
 
 
 # Application definition
@@ -37,8 +37,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'rest_framework.authtoken',
     'CanvasWrapper.apps.CanvaswrapperConfig',
-    'Main.apps.MainConfig'
+    'Main.apps.MainConfig',
+    'API.apps.ApiConfig',
 ]
 
 MIDDLEWARE = [

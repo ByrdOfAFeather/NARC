@@ -18,6 +18,7 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('CanvasWrapper.urls')),
+    path('canvas_api/', include('CanvasWrapper.urls')),
+    path('api/', include('API.urls')),
     path('', include("Main.urls")),
 ]
