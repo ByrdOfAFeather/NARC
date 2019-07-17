@@ -128,6 +128,7 @@
 
         }
 
+
         actionTrack.innerText = "Loading Testing Data!";
         $.ajax({
             url: "{% url 'canvaswrapper:quiz-get-submissions'%}",
@@ -143,7 +144,6 @@
                 console.log(results);
             }
         });
-
 
 
         function loadMoreStatistics(results) {
@@ -168,39 +168,6 @@
             else {
                 parseData();
             }
-        }
-
-
-        function updateMaxMin(runningTotals, localPageLeaves, localTimeBetween, localTimeSpent) {
-            let overallPageLeavesMax = runningTotals["overall_page_leaves_max"];
-            let overallPageLeavesMin = runningTotals["overall_page_leaves_min"];
-
-            let overallTimeTakenMax = runningTotals["overall_time_taken_max"];
-            let overallTimeTakenMin = runningTotals["overall_time_taken_min"];
-
-            let overallTimeBetweenMax = runningTotals["overall_time_between_max"];
-            let overallTimeBetweenMin = runningTotals["overall_time_between_min"];
-
-            runningTotals["overall_page_leaves_max"] = (
-                overallPageLeavesMax == null || overallPageLeavesMax < localPageLeaves)
-                ? localPageLeaves : overallPageLeavesMax;
-            runningTotals["overall_page_leaves_min"] = (
-                overallPageLeavesMin == null || overallPageLeavesMin > localPageLeaves)
-                ? localPageLeaves : overallPageLeavesMin;
-
-            runningTotals["overall_time_taken_max"] = (
-                overallTimeTakenMax == null || overallTimeTakenMax < localPageLeaves)
-                ? localTimeSpent : overallTimeTakenMax;
-            runningTotals["overall_time_taken_min"] = (
-                overallTimeTakenMin == null || overallTimeTakenMin > localPageLeaves)
-                ? localTimeSpent : overallTimeTakenMin;
-
-            runningTotals["overall_time_between_max"] = (
-                overallTimeBetweenMax == null || overallTimeBetweenMax < localPageLeaves)
-                ? localTimeBetween : overallTimeBetweenMax;
-            runningTotals["overall_time_between_min"] = (
-                overallTimeBetweenMin == null || overallTimeBetweenMin > localPageLeaves)
-                ? localTimeBetween : overallTimeBetweenMin;
         }
 
 
@@ -273,11 +240,6 @@
                     runningTotals["overall_time_taken"] += userData[currentID]["time_taken"];
                     runningTotals["overall_page_leaves"] += dataSet[currentID]["page_leaves"];
                     runningTotals["divide_by"] += 1;
-                    updateMaxMin(runningTotals,
-                        userData[currentID]["page_leaves"],
-                        userData[currentID]["average_time_between_questions"],
-                        userData[currentID]["time_taken"]
-                    )
                 }
 
                 else if (localDemo === 0) {
@@ -295,10 +257,6 @@
                     runningTotals["overall_time_between"] += sum;
                     runningTotals["divide_by_between"] += localDemo;
                     runningTotals["divide_by"] += 1;
-                    updateMaxMin(runningTotals,
-                        userData[currentID]["page_leaves"],
-                        userData[currentID]["average_time_between_questions"],
-                        userData[currentID]["time_taken"])
                 }
             }
             // TODO: Overall denominator is broken as it goes for everything when only time taken and page leaves
@@ -307,22 +265,9 @@
             let rel_time_taken = runningTotals["overall_time_taken"] / runningTotals["divide_by"];
             let rel_page_leaves = runningTotals["overall_page_leaves"] / runningTotals["divide_by"];
 
-            let rel_avg_time_max = 0;
-            let rel_time_taken_max = 0;
-            let rel_page_leaves_max = 0;
-
-            let rel_avg_time_min = null;
-            let rel_time_taken_min = null;
-            let rel_page_leaves_min = null;
-
-            // This scales the normal values and sets up scaling the relative values
             for (let i = 0; i<userIds.length; i++) {
                 console.log(dataSet);
                 let currentUser = userData[userIds[i]];
-                // TODO: If you find a better way of scaling data column-wise in tensorflow, remake this
-                currentUser["average_time_between_questions"] = (currentUser["average_time_between_questions"] - runningTotals["overall_time_between_min"]) / (runningTotals["overall_time_between_max"] - runningTotals["overall_time_between_min"]);
-                currentUser["time_taken"] = (currentUser["time_taken"] - runningTotals["overall_time_taken_min"]) / (runningTotals["overall_time_taken_max"] - runningTotals["overall_time_taken_min"]);
-                currentUser["page_leaves"] = (currentUser["page_leaves"] - runningTotals["overall_page_leaves_min"]) / (runningTotals["overall_page_leaves_max"] - runningTotals["overall_page_leaves_min"]);
 
                 let curRelAvgTimeTaken = currentUser["average_time_between_questions"] - rel_average_time_between;
                 let curRelTimeTaken =  currentUser["time_taken"] - rel_time_taken;
@@ -331,39 +276,6 @@
                 currentUser["rel_average_time_between_questions"] = curRelAvgTimeTaken;
                 currentUser["rel_time_taken"] = curRelTimeTaken;
                 currentUser["rel_page_leaves"] = curRelPageLeaves;
-
-                //TODO: there has got to be a better way to do this
-                if (curRelAvgTimeTaken > rel_avg_time_max) {
-                    rel_avg_time_max = curRelAvgTimeTaken;
-                }
-
-                if (curRelAvgTimeTaken < rel_avg_time_min || rel_avg_time_min == null) {
-                    rel_avg_time_min = curRelAvgTimeTaken;
-                }
-
-                if (curRelTimeTaken > rel_time_taken_max) {
-                    rel_time_taken_max = curRelTimeTaken;
-                }
-
-                if (curRelTimeTaken < rel_time_taken_min || rel_time_taken_min == null) {
-                    rel_time_taken_min = curRelTimeTaken;
-                }
-
-                if (curRelPageLeaves > rel_page_leaves_max) {
-                    rel_page_leaves_max = curRelPageLeaves;
-                }
-
-                if (curRelPageLeaves < rel_page_leaves_min || rel_page_leaves_min == null) {
-                    rel_page_leaves_min = curRelPageLeaves;
-                }
-            }
-
-            for (let i = 0; i<userIds.length; i++) {
-                let currentUser = userData[userIds[i]];
-                currentUser["rel_average_time_between_questions"] = (currentUser["rel_average_time_between_questions"] - rel_avg_time_min) / (rel_avg_time_max - rel_avg_time_min);
-                currentUser["rel_time_taken"] = (currentUser["rel_time_taken"] - rel_time_taken_min) / (rel_time_taken_max - rel_time_taken_min);
-                currentUser["rel_page_leaves"] = (currentUser["rel_page_leaves"] - rel_page_leaves_min) / (rel_page_leaves_max - rel_page_leaves_min);
-                // TODO: Come back and make this not like this please. Build the list instead of building a temporary dictionary
                 passableData.push(
                     {
                         "id": userIds[i],
@@ -377,6 +289,7 @@
                     },
                 );
             }
+
             console.log(passableData);
             if (window.localStorage.getItem("save_data")) {
                 $.ajax({

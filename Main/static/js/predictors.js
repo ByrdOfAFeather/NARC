@@ -19,8 +19,11 @@ function loadData(dataSet, idLinker) {
         const tensorInOut = inOut.map(student => [student.time_taken, student.average_time_between_questions, student.page_leaves]);
         console.log(inOut);
         const inOutTensor = tf.tensor2d(tensorInOut, [dataSet.length, 3]);
-
-       return inOutTensor;
+        const max = inOutTensor.max(axis=0);
+        const min = inOutTensor.min(axis=0);
+        let  scaledTensor = inOutTensor.sub(min);
+        scaledTensor = scaledTensor.div(max.sub(min));
+       return scaledTensor;
     });
 }
 
