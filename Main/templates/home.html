@@ -6,7 +6,7 @@
     <script type="text/javascript" src="{% static 'js/canvasRQ.js' %}"></script>
 {% endblock %}
 {% block css %}
-    <link rel="stylesheet" types="text/css" href="{% static 'css/styles.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'css/styles.css' %}">
 {% endblock %}
 
 {% block body %}
@@ -17,10 +17,15 @@
     {% block settings_menu_scripts %}{% endblock %}
     {% block extras %}
         <script type="text/javascript">
-            // Placeholder for actually privacy policy
+            // Placeholder for actual privacy policy
             window.onload = function() {
                 alert("Cookies are used on this website!");
             };
+
+            /**
+             * This function logs a user in via Canvas' OAuth2 implementation see Main/views.py for more information
+             * @returns nothing
+             */
             function getAPIInfo() {
                 let url = window.prompt("What is your Canvas URL?", "(ex: canvas.instructure.com | stanford.instructure.com)");
                 if (url) {
@@ -31,20 +36,20 @@
                         data: {"url": url},
                         success: function() {
                             if (window.confirm("Would you like to allow NARC to save data?")) {
-                                window.localStorage.setItem("save_data", "true");
-                                window.localStorage.setItem("autoencoder-iterations", "5000");
+                                window.localStorage.setItem("save_data", "true");  // Stores the setting information
+                                window.localStorage.setItem("autoencoder-iterations", "5000");  // Sets default
                             }
                             else {
-                                window.localStorage.setItem("save_data", "true");
+                                window.localStorage.setItem("save_data", "false");
                                 window.localStorage.setItem("autoencoder-iterations", "5000");
                             }
                             window.location.replace("{% url 'mainpages:oauth-authorization' %}");
                         },
                         error: function(results) {
-                            if (results.status === 404) {
+                            if (results.status === 404) { // This is where a dev key cannot be found
                                 alert("This deployment of Canvas is not supported!");
                             }
-                            if (results.status === 406) {
+                            if (results.status === 406) { // This is the case where the user is already logged in
                                 window.location.replace("{% url 'mainpages:courses-view' %}");
                             }
                         }

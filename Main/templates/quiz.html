@@ -13,13 +13,8 @@
         <link rel="stylesheet" type="text/css" href="{% static 'css/quiz.css' %}">
 {% endblock %}
 {% block body %}
-    <!-- TODO: Rename function  -->
     <button onclick="buttonCheck();" id="start-button">Check For Cheaters</button>
     <p id="button-warning">Please wait for the data to load!</p>
-    <!-- TODO: Figure out what to do with these
-    <div id="title"></div>
-    <div id="submissions"></div>
-    -->
 
     <div id="results">
         <div id="cheaters">
@@ -63,12 +58,10 @@
         let idDict = {};
         let dataSet = {};
         let eventSet = {};
-        let submissionSet = {};
         passableData = [];
         let actionTrack = document.getElementById("current-action");
         document.getElementById("autoencoder-iterations-display").innerText = window.localStorage.getItem("autoencoder-iterations");
 
-        // TODO: Add warning when the button lock is true and the button is pressed
         let buttonLock = true;
         idDict.totalPageLeaveNo = setInterval(function() {
             randomChangeNumber(document.getElementById("total-page-leavers-no"));
@@ -160,7 +153,6 @@
 
             dataSet = results["user_to_page_leaves"];
             eventSet = results["user_to_events"];
-            submissionSet = results["user_to_submissions"];
             clearInterval(idDict.totalPageLeaveNo);
             document.getElementById("total-page-leaves-no").innerText = results["page_leaves"];
 
@@ -179,36 +171,70 @@
         }
 
 
+        function updateMaxMin(runningTotals, localPageLeaves, localTimeBetween, localTimeSpent) {
+            let overallPageLeavesMax = runningTotals["overall_page_leaves_max"];
+            let overallPageLeavesMin = runningTotals["overall_page_leaves_min"];
+
+            let overallTimeTakenMax = runningTotals["overall_time_taken_max"];
+            let overallTimeTakenMin = runningTotals["overall_time_taken_min"];
+
+            let overallTimeBetweenMax = runningTotals["overall_time_between_max"];
+            let overallTimeBetweenMin = runningTotals["overall_time_between_min"];
+
+            runningTotals["overall_page_leaves_max"] = (
+                overallPageLeavesMax == null || overallPageLeavesMax < localPageLeaves)
+                ? localPageLeaves : overallPageLeavesMax;
+            runningTotals["overall_page_leaves_min"] = (
+                overallPageLeavesMin == null || overallPageLeavesMin > localPageLeaves)
+                ? localPageLeaves : overallPageLeavesMin;
+
+            runningTotals["overall_time_taken_max"] = (
+                overallTimeTakenMax == null || overallTimeTakenMax < localPageLeaves)
+                ? localTimeSpent : overallTimeTakenMax;
+            runningTotals["overall_time_taken_min"] = (
+                overallTimeTakenMin == null || overallTimeTakenMin > localPageLeaves)
+                ? localTimeSpent : overallTimeTakenMin;
+
+            runningTotals["overall_time_between_max"] = (
+                overallTimeBetweenMax == null || overallTimeBetweenMax < localPageLeaves)
+                ? localTimeBetween : overallTimeBetweenMax;
+            runningTotals["overall_time_between_min"] = (
+                overallTimeBetweenMin == null || overallTimeBetweenMin > localPageLeaves)
+                ? localTimeBetween : overallTimeBetweenMin;
+        }
+
+
         function buildData(userData, eventData, buildRel=false) {
             // TODO: This function is a bit odd since it uses local variables but is being called with globals
             // so it's modifying globals in place, making the locals irrelevant
             actionTrack.innerText = "Building Dataset!";
             let userIds = Object.keys(userData);
             let currentEvents = null;
-            let currentId = null;
+            let currentID = null;
             let prevTime = null;
             let curTime = null;
             let localStart = null;
             let sum = 0;
-            let denominator = 0;
-            let overall_time_between_sum = 0;
-            let overall_time_taken_sum = 0;
-            let overall_page_leaves_sum = 0;
-            let overall_denominator = 0;
+            let localDemo = 0;
 
-            let time_taken_max = 0;
-            let time_taken_min = null;
-
-            let page_leaves_max = 0;
-            let page_leaves_min = null;
-
-            let time_between_max = 0;
-            let time_between_min = null;
+            let runningTotals = {
+                "overall_time_between": 0,
+                "overall_time_taken": 0,
+                "overall_page_leaves": 0,
+                "divide_by_between": 0,
+                "divide_by" : 0,
+                "overall_time_taken_max": null,
+                "overall_time_taken_min": 0,
+                "overall_time_between_max": null,
+                "overall_time_between_min": 0,
+                "overall_page_leaves_max": null,
+                "overall_page_leaves_min": 0,
+            };
 
             for (let i =0; i<userIds.length; i++) {
-                currentId = userIds[i];
-                currentEvents = eventData[currentId]["quiz_submission_events"];
-                prevTime = null; curTime = null; sum = 0; denominator = 0; localStart = null; // I'm not 100% how memory management works in js, but I felt it was better not to create a new variable every iteration
+                currentID = userIds[i];
+                currentEvents = eventData[currentID]["quiz_submission_events"];
+                prevTime = null; curTime = null; sum = 0; localDemo = 0; localStart = null; // I'm not 100% how memory management works in js, but I felt it was better not to create a new variable every iteration
 
                 for (let i = 0; i < currentEvents.length; i++) {
                     if (currentEvents[i]["event_type"] === "session_started") {
@@ -227,81 +253,59 @@
                             curTime = new Date(currentEvents[i]["created_at"]);
                             let curCalc = Math.abs(curTime - prevTime);
                             sum += curCalc;
-                            overall_time_between_sum += curCalc;
+                            runningTotals["overall_time_between"] += curCalc;
                             prevTime = curTime;
-                            denominator += 1;
-                            overall_denominator += 1;
+                            localDemo += 1;
+                            runningTotals["divide_by_between"] += 1;
                         }
                     }
                 }
 
-                if (denominator === 0 && prevTime !== null) {
+                if (localDemo === 0 && prevTime !== null) {
                     // This is the case where there is only one question or the user only answered one
                     // So the time between questions is the time between submission and the first question answered.
                     let curCalc = Math.abs(prevTime - localStart);
-                    userData[currentId]["average_time_between_questions"] = curCalc;
-                    overall_time_between_sum += curCalc;
-                    userData[currentId]["time_taken"] = submissionSet[currentId]["time_spent"];
-                    overall_time_taken_sum += submissionSet[currentId]["time_spent"];
-                    overall_page_leaves_sum += dataSet[currentId]["page_leaves"];
-                    overall_denominator += 1;
-
-                    if (userData[currentId]["average_time_between_questions"] > time_between_max) {
-                        time_between_max = userData[currentId]["average_time_between_questions"];
-                    }
-                    if (userData[currentId]["time_taken"] > time_taken_max) {
-                        time_taken_max = userData[currentId]["time_taken"];
-                    }
-                    if (userData[currentId]["page_leaves"] > page_leaves_max) {
-                        page_leaves_max = userData[currentId]["page_leaves"];
-                    }
-                    if (userData[currentId]["average_time_between_questions"] < time_between_min || time_between_min == null) {
-                        time_between_min = userData[currentId]["average_time_between_questions"];
-                    }
-                    if (userData[currentId]["time_taken"] < time_taken_min || time_taken_min == null) {
-                        time_taken_min = userData[currentId]["time_taken"];
-                    }
-                    if (userData[currentId]["page_leaves"] < page_leaves_min || page_leaves_min == null) {
-                        page_leaves_min = userData[currentId]["page_leaves"]
-                    }
+                    userData[currentID]["average_time_between_questions"] = curCalc;
+                    userData[currentID]["time_taken"] = dataSet[currentID]["time_taken"];
+                    userData[currentID]["page_leaves"] = dataSet[currentID]["page_leaves"];
+                    runningTotals["overall_time_between"] += curCalc;
+                    runningTotals["divide_by_between"] += 1;
+                    runningTotals["overall_time_taken"] += userData[currentID]["time_taken"];
+                    runningTotals["overall_page_leaves"] += dataSet[currentID]["page_leaves"];
+                    runningTotals["divide_by"] += 1;
+                    updateMaxMin(runningTotals,
+                        userData[currentID]["page_leaves"],
+                        userData[currentID]["average_time_between_questions"],
+                        userData[currentID]["time_taken"]
+                    )
                 }
 
-                else if (denominator === 0) {
+                else if (localDemo === 0) {
                     // This is the case where either there are no questions or the user did not answer any
                     // The user is deleted as the user cannot cheat if they didn't answer a question!
-                    delete userData[currentId];
+                    delete userData[currentID];
                 }
 
                 else {
-                    userData[currentId]["average_time_between_questions"] = sum / denominator;
-                    userData[currentId]["time_taken"] = submissionSet[currentId]["time_spent"];
-                    overall_time_taken_sum += submissionSet[currentId]["time_spent"];
-                    overall_page_leaves_sum += dataSet[currentId]["page_leaves"];
-                    if (userData[currentId]["average_time_between_questions"] > time_between_max) {
-                        time_between_max = userData[currentId]["average_time_between_questions"];
-                    }
-                    if (userData[currentId]["time_taken"] > time_taken_max) {
-                        time_taken_max = userData[currentId]["time_taken"];
-                    }
-                    if (userData[currentId]["page_leaves"] > page_leaves_max) {
-                        page_leaves_max = userData[currentId]["page_leaves"];
-                    }
-                    if (userData[currentId]["average_time_between_questions"] < time_between_min || time_between_min === null) {
-                        time_between_min = userData[currentId]["average_time_between_questions"];
-                    }
-                    if (userData[currentId]["time_taken"] < time_taken_min || time_taken_min === null) {
-                        time_taken_min = userData[currentId]["time_taken"];
-                    }
-                    if (userData[currentId]["page_leaves"] < page_leaves_min || page_leaves_min === null) {
-                        page_leaves_min = userData[currentId]["page_leaves"]
-                    }
+                    userData[currentID]["average_time_between_questions"] = sum / localDemo;
+                    userData[currentID]["time_taken"] = dataSet[currentID]["time_taken"];
+                    userData[currentID]["page_leaves"] = dataSet[currentID]["page_leaves"];
+                    runningTotals["overall_time_taken"] += userData[currentID]["time_taken"];
+                    runningTotals["overall_page_leaves"] += dataSet[currentID]["page_leaves"];
+                    runningTotals["overall_time_between"] += sum;
+                    runningTotals["divide_by_between"] += localDemo;
+                    runningTotals["divide_by"] += 1;
+                    updateMaxMin(runningTotals,
+                        userData[currentID]["page_leaves"],
+                        userData[currentID]["average_time_between_questions"],
+                        userData[currentID]["time_taken"])
                 }
             }
             // TODO: Overall denominator is broken as it goes for everything when only time taken and page leaves
             // will have the same denominator
-            let rel_average_time_between = overall_time_between_sum / overall_denominator;
-            let rel_time_taken = overall_time_taken_sum / overall_denominator;
-            let rel_page_leaves = overall_page_leaves_sum / overall_denominator;
+            let rel_average_time_between = runningTotals["overall_time_between"] / runningTotals["divide_by_between"];
+            let rel_time_taken = runningTotals["overall_time_taken"] / runningTotals["divide_by"];
+            let rel_page_leaves = runningTotals["overall_page_leaves"] / runningTotals["divide_by"];
 
             let rel_avg_time_max = 0;
             let rel_time_taken_max = 0;
@@ -316,9 +320,9 @@
                 console.log(dataSet);
                 let currentUser = userData[userIds[i]];
                 // TODO: If you find a better way of scaling data column-wise in tensorflow, remake this
-                currentUser["average_time_between_questions"] = (currentUser["average_time_between_questions"] - time_between_min) / (time_between_max - time_between_min);
-                currentUser["time_taken"] = (currentUser["time_taken"] - time_taken_min) / (time_taken_max - time_taken_min);
-                currentUser["page_leaves"] = (currentUser["page_leaves"] - page_leaves_min) / (page_leaves_max - page_leaves_min);
+                currentUser["average_time_between_questions"] = (currentUser["average_time_between_questions"] - runningTotals["overall_time_between_min"]) / (runningTotals["overall_time_between_max"] - runningTotals["overall_time_between_min"]);
+                currentUser["time_taken"] = (currentUser["time_taken"] - runningTotals["overall_time_taken_min"]) / (runningTotals["overall_time_taken_max"] - runningTotals["overall_time_taken_min"]);
+                currentUser["page_leaves"] = (currentUser["page_leaves"] - runningTotals["overall_page_leaves_min"]) / (runningTotals["overall_page_leaves_max"] - runningTotals["overall_page_leaves_min"]);
 
                 let curRelAvgTimeTaken = currentUser["average_time_between_questions"] - rel_average_time_between;
                 let curRelTimeTaken =  currentUser["time_taken"] - rel_time_taken;

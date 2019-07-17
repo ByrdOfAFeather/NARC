@@ -1,41 +1,56 @@
-from datetime import timedelta
+"""
+Container for view functions related to retrieving data from the Canvas API as well as processing & saving data on the
+server
+"""
 
-import requests
 import json
 import os
 import base64
 import threading
+import requests
 import random as rand
 import pandas as pd
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_GET, require_POST
 from django.http import QueryDict
 from django.utils import timezone
 from django.shortcuts import render
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpRequest
 from Main.models import APIKey
 from CanvasWrapper.predictors import classify
 from CanvasWrapper.models import Dataset, UserToDataset, Queuer
-from math import floor
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.fernet import Fernet
+from math import floor
+from datetime import timedelta
+from typing import Optional
 
 
-def get_key(encryption_key):
-	encryption_key = encryption_key.encode()
-	salt = os.environ.get("SALT_KEY", "I'm just a placeholder for development!").encode()
-	kdf = PBKDF2HMAC(
+def get_key(encryption_key: str) -> bytes:
+	"""Gets a suitable base64encoded key based on the string passed
+	:param encryption_key: A string (probably user provided) that will serve as the key for the encryption
+	:return: A bytes-like to be used in encryption
+	"""
+	encryption_key = encryption_key.encode()  # Converts the key to a bytes object
+	salt = os.environ.get("SALT_KEY", "I'm just a placeholder for development!").encode()  # Gets the salt key
+	kdf = PBKDF2HMAC(  # Builds a object to derive the key
 		algorithm=hashes.SHA256(),
 		length=32,
 		salt=salt,
 		iterations=100000,
 		backend=default_backend()
 	)
-	return base64.urlsafe_b64encode(kdf.derive(encryption_key))
+	return base64.urlsafe_b64encode(kdf.derive(encryption_key))  # Returns the key
 
 
-def push_notification(cheaters, non_cheaters):
+def push_notification(cheaters: bytes, non_cheaters: bytes) -> None:
+	"""WIP. Sends a push notification to the device from which the request originated (TODO: UPDATE DOCUMENTATION)
+	:param cheaters: Bytes like encrypted data that represents the cheaters
+	:param non_cheaters: Bytes like encrypted data that represents the non cheaters
+	:return:
+	"""
 	push_json = {"notification": {
 		"title": "Data Processed!",
 		"body": "The results for your recent request are ready to be reviewed!",
@@ -56,7 +71,6 @@ def push_notification(cheaters, non_cheaters):
 
 
 def process_mobile_data(data):
-	# TODO Implement queuing system
 	del data["secret"]
 	# TODO Actually interpret this data
 	storage = data["storage"]
@@ -78,30 +92,49 @@ def process_mobile_data(data):
 	push_notification(cheaters, non_cheaters)
 
 
-def test_token(token, url, dev):
+def test_token(token: str, url: str, dev: bool) -> bool:
+	"""Tests the OAuth2 token currently stored for the active user.
+	:param token: Token for the current user
+	:param url: The URL for the canvas installation of the current user
+	:param dev: If the developer token provided to NARC is on a secure server or unsecured
+	:return: If the request returned a positive result
+	"""
 	simple_request = requests.get(f"https://{url}/api/v1/courses", headers={"Authorization": f"Bearer {token}"},
 	                              verify=False is dev)
 	return simple_request.status_code == 200
 
 
-def content_helper(request):
-	if request.status_code == 200:
-		response = JsonResponse({"success": {"data": json.dumps(request.json())}})
-		response.status_code = 200
+def content_helper(response: requests.models.Response) -> JsonResponse:
+	"""A simple helper function for similar Canvas LMS requests to process the data based on the status code
+	:param response: The response from a call to the canvas API
+	:return: A Django JsonResponse, either providing a generic error or a success with the data associated
+	"""
+	if response.status_code == 200:  # Checks the status of the response
+		response = JsonResponse({"success": {"data": json.dumps(response.json())}})  # Returns the data in a standard format
+		response.status_code = 200  # Mimics the original status code
 		return response
 	else:
-		response = JsonResponse({"error": "unknown error occured! (Maybe token expired?)"})
-		response.status_code = request.status_code
+		response = JsonResponse({"error": "unknown error occurred! (Maybe token expired?)"})  # Returns a generic error
+		response.status_code = response.status_code  # mimics status code
 		return response
 
 
-def error_generator(error, error_code):
+def error_generator(error: str, error_code: int) -> JsonResponse:
+	"""A simple helper function to build non-generic error responses
+	:param error: A short message describing the error
+	:param error_code: The code for the error
+	:return: A response containing the code and error
+	"""
 	response = JsonResponse({"error": error})
 	response.status_code = error_code
 	return response
 
 
-def get_client_id(url):
+def get_dev_key(url: str) -> Optional[APIKey]:
+	"""Gets the dev key based on the url provided
+	:param url: The url for the canvas installation the user is trying to login from
+	:return: Either an object representing the APIKey or none if we do not have a developer key yet
+	"""
 	key = APIKey.objects.filter(url=url)
 	if key:
 		return key[0]
@@ -109,106 +142,137 @@ def get_client_id(url):
 		return None
 
 
-def expire_checker(request):
-	if not request.user.is_authenticated:
-		return error_generator("You aren't logged in!", 401)
+def expire_checker(request: HttpRequest) -> tuple:
+	"""Checks if a users token is expired before sending a request to the canvas API
+	:param request: The current request as provided by django
+	:return: A tuple containing either None, Client (being the APIKey) if successful or
+	JsonResponse, None if unrecoverable error
+	"""
+	if not request.user.is_authenticated:  # Checks if the user is already logged in and if not returns an error
+		return error_generator("You aren't logged in!", 401), None
 
-	url = request.user.canvas_oauth2_token.url
+	url = request.user.canvas_oauth2_token.url  # Gets the url from the user's associated oauth2 token
 
-	client = get_client_id(url)
+	client = get_dev_key(url)  # Gets the canvas dev key associated with the provided url
 	if not client:
-		return error_generator("We do not support this version of Canvas!", 401)
+		return error_generator("We do not support this version of Canvas!", 401), None  # Developer key can't be found
 
-	if request.user.canvas_oauth2_token.expires_within(timedelta(seconds=60)):
-		print("I'M WORKING ON GETTING A NEW TOKEN")
-		new_token = requests.post(f"{url}/login/oauth2/token", {
+	if request.user.canvas_oauth2_token.expires_within(timedelta(seconds=60)):  # If expiration in a minute
+		new_token = requests.post(f"{url}/login/oauth2/token", {  # Builds a post request to get a new token
 			"grant_type": "refresh_token",
 			"client_id": client.client_id,
 			"client_secret": client.client_secret,
+			# TODO: Change this!!!!!!!!!!!!!!!!!!
 			"redirect_uri": "http://127.0.0.1:8000/oauth_confirm",
 			"refresh_token": request.user.canvas_oauth2_token.refresh_token,
-		}, verify=False is client.dev)  # TODO: Remember to make this True in production!
-		if new_token.status_code == 200:
+		}, verify=False is client.dev)
+		if new_token.status_code == 200:  # If the token is validated
+			# Save the token to the database
 			new_token_data = new_token.json()
 			request.user.canvas_oauth2_token.access_token = new_token_data["access_token"]
 			request.user.canvas_oauth2_token.expires = timezone.now() + timedelta(seconds=new_token_data["expires_in"])
 			request.user.canvas_oauth2_token.save()
+			return None, client
 		else:
-			return error_generator("Error getting new token! Please login again!", 401), None
+			return error_generator("Error getting new token! Please login again!", 401), None  # Error getting token
 	else: return None, client
 
 
-def get_courses(request):
-	error = expire_checker(request)
-	url = request.user.canvas_oauth2_token.url
-	if error[0] is not None:
+def get_courses(request: HttpRequest) -> JsonResponse:
+	"""Gets a list of courses from the Canvas API based on current user
+	:param request: The current request as provided by django
+	:return: A JSONResponse containing either an error or the data provided by Canvas
+	"""
+	error = expire_checker(request)  # First check if the token is going to expire soon
+	url = request.user.canvas_oauth2_token.url  # Get the URL from the oauth2 object associated with user
+	if error[0] is not None:  # checks if the expire check had a non-null value in the first position
 		return error[0]
-	client = error[1]
-	header = {"Authorization": f"Bearer {request.user.canvas_oauth2_token.access_token}"}
+	client = error[1]  # if not then the second position should contain the APIKey
+	header = {"Authorization": f"Bearer {request.user.canvas_oauth2_token.access_token}"}  # Creates header
 	courses = requests.get(
 		"{}/api/v1/courses?per_page=50".format(url),
 		headers=header, verify=False is client.dev)
-	return content_helper(courses)
+	return content_helper(courses)  # returns from the generic helper (see content_helper)
 
 
-def get_modules(request):
+@require_GET
+def get_modules(request: HttpRequest) -> JsonResponse:
+	"""Gets a list of modules for the provided course from the Canvas API based on current user
+	A module ID has to be provided in order to access the correct course
+	:param request: The current request as provided by django
+	:return: A JSONResponse containing either an error or the data provided by Canvas
+	"""
+	# Note: For functionality documentation, see get_courses, as much of it is the same
 	error = expire_checker(request)
 	url = request.user.canvas_oauth2_token.url
 	if error[0] is not None:
 		return error[0]
 	client = error[1]
 	header = {"Authorization": f"Bearer {request.user.canvas_oauth2_token.access_token}"}
-	course_id = request.GET.get("course_id")
-	if header:
-		modules = requests.get(
-			"{}/api/v1/courses/{}/modules?per_page=50".format(url, course_id),
-			headers=header, verify=False is client.dev)
+	course_id = request.GET.get("course_id", "")
 
-		return content_helper(modules)
+	if not course_id: return error_generator("There was no provided course ID!", 404) # Returns without module ID
 
-	else:
-		return error_generator("invalid session, unauthorized", 401)
+	modules = requests.get(
+		"{}/api/v1/courses/{}/modules?per_page=50".format(url, course_id),
+		headers=header, verify=False is client.dev)
+	return content_helper(modules)
 
 
-def get_quizzes(request):
+@require_GET
+def get_quizzes(request: HttpRequest) -> JsonResponse:
+	"""Returns a list of quizzes inside of a provided module
+	A course ID and module ID have to be provided in order to find the module properly.
+	:param request: The current request as provided by django
+	:return: A JSONResponse containing either an error or the data provided by Canvas
+	"""
 	error = expire_checker(request)
 	url = request.user.canvas_oauth2_token.url
 	if error[0] is not None:
 		return error[0]
 	client = error[1]
 	header = {"Authorization": f"Bearer {request.user.canvas_oauth2_token.access_token}"}
-	course_id = request.GET.get("course_id")
-	module_id = request.GET.get("module_id")
-	if header:
-		quizzes = requests.get(
-			"{}/api/v1/courses/{}/modules/{}/items".format(url, course_id, module_id),
-			headers=header, verify=False is client.dev)
-		if quizzes.status_code == 200:
-			quizzes = [
-				{"name": items["title"], "id": items["content_id"]}
-				for items in quizzes.json() if items['type'] == "Quiz"
-			]
-			response = JsonResponse({"success": {"data": str(quizzes)}})
-			response.status_code = 200
-			return response
+	course_id = request.GET.get("course_id", "")
+	module_id = request.GET.get("module_id", "")
 
-		else:
-			response = JsonResponse({"error": "unknown error occurred! (Maybe token expired?)"})
-			response.status_code = request.status_code
-			return response
+	if not course_id: return error_generator("No Course ID was provided!", 404)
+	if not module_id: return error_generator("No Module ID was provided!", 404)
+
+	quizzes = requests.get(
+		"{}/api/v1/courses/{}/modules/{}/items".format(url, course_id, module_id),
+		headers=header, verify=False is client.dev)
+	if quizzes.status_code == 200:
+		quizzes = [
+			{"name": items["title"], "id": items["content_id"]}
+			for items in quizzes.json() if items['type'] == "Quiz"
+		]
+		response = JsonResponse({"success": {"data": str(quizzes)}})
+		response.status_code = 200
+		return response
 
 	else:
-		return error_generator("invalid session, unauthorized", 401)
+		response = JsonResponse({"error": "unknown error occurred! (Maybe token expired?)"})
+		response.status_code = quizzes.status_code
+		return response
 
 
+@require_GET
 def get_quiz_info(request, quiz_id):
+	"""Retrieves basic information about a quiz
+	:param request: The current request as provided by django
+	:param quiz_id: The ID for the quiz
+	:return: A JSONResponse containing either an error or the data provided by Canvas
+	"""
 	error = expire_checker(request)
 	url = request.user.canvas_oauth2_token.url
 	if error[0] is not None:
 		return error[0]
 	client = error[1]
 	header = {"Authorization": f"Bearer {request.user.canvas_oauth2_token.access_token}"}
-	course_id = request.GET.get("course_id")
+	course_id = request.GET.get("course_id", "")
+
+	if not course_id: return error_generator("A course ID must be provided!", 404)
+
 	if header:
 		quiz_info = requests.get(
 			"{}/api/v1/courses/{}/quizzes/{}/statistics".format(url, course_id, quiz_id),
@@ -216,7 +280,7 @@ def get_quiz_info(request, quiz_id):
 		return content_helper(quiz_info)
 
 	else:
-		return error_generator("invalid session, unauthorized", 401)
+		return error_generator("Invalid session, unauthorized", 401)
 
 
 def find_std_count(std, scores, start_index):
@@ -240,7 +304,12 @@ def find_std_count(std, scores, start_index):
 		return find_std_count(std, scores, start_index)
 
 
+@require_GET
 def get_quiz_stats(request):
+	"""Gets basic information about a particular quiz's statistics
+	:param request: The current request as provided by django
+	:return: A Json response either containing an error or the standard deviation and number of students above 2 stds.
+	"""
 	error = expire_checker(request)
 	url = request.user.canvas_oauth2_token.url
 	if error[0] is not None:
@@ -249,6 +318,9 @@ def get_quiz_stats(request):
 	header = {"Authorization": f"Bearer {request.user.canvas_oauth2_token.access_token}"}
 	course_id = request.GET.get("course_id", "")
 	quiz_id = request.GET.get("quiz_id", "")
+
+	if not course_id: return error_generator("A course ID must be provided!", 404)
+	if not quiz_id: return error_generator("A quiz ID must be provided!", 401)
 
 	quiz_stats = requests.get(
 		"{}/api/v1/courses/{}/quizzes/{}/statistics".format(url, course_id, quiz_id),
@@ -260,7 +332,7 @@ def get_quiz_stats(request):
 	if quiz_stats.status_code == 200:
 		quiz_stats = quiz_stats.json()["quiz_statistics"][0]
 
-		# Fins the standard deviation
+		# Finds the standard deviation
 		return_json["std"] = quiz_stats["submission_statistics"]["score_stdev"]
 		return_json["std"] = return_json["std"] / quiz_stats["points_possible"]
 		# Finds the number of students scoring two standard deviations above the mean
@@ -275,6 +347,7 @@ def get_quiz_stats(request):
 		return error_generator("invalid session, unauthorized", 401)
 
 
+@require_GET
 def get_quiz_submissions(request):
 	# TODO: Remake to user only one user dict
 	error = expire_checker(request)
@@ -292,14 +365,12 @@ def get_quiz_submissions(request):
 	)
 
 	users_to_events = {}
-	users_to_submissions = {}
 	users_to_page_leaves = {}
 	total_page_leaves = 0
 	unique_page_leavers = 0
 	for submissions in submissions.json()["quiz_submissions"]:
 		user_id = submissions["user_id"]
 		submission_id = submissions["id"]
-		users_to_submissions[user_id] = submissions
 		local_page_leaves = 0
 		events = requests.get(link + f"/{submission_id}/events?per_page=50000",
 		                      headers=header, verify=False is client.dev)
@@ -312,6 +383,7 @@ def get_quiz_submissions(request):
 
 				users_to_page_leaves[user_id] = {}
 				users_to_page_leaves[user_id]["page_leaves"] = local_page_leaves
+				users_to_page_leaves[user_id]["time_taken"] = submissions["time_spent"]
 				profile = requests.get(f"{url}/api/v1/users/{user_id}/profile", headers=header, verify=False is client.dev)
 				users_to_page_leaves[user_id]["name"] = profile.json()["name"]
 				if local_page_leaves > 0:
@@ -325,33 +397,43 @@ def get_quiz_submissions(request):
 	response = JsonResponse({"success": {"data": {"page_leaves": total_page_leaves,
 	                                              "user_to_events": users_to_events,
 	                                              "user_to_page_leaves": users_to_page_leaves,
-	                                              "unique_page_leavers": unique_page_leavers,
-	                                              'user_to_submissions': users_to_submissions}}})
+	                                              "unique_page_leavers": unique_page_leavers}}})
 	response.status_code = 200
 	return response
 
 
-def anonymize_data(json_data):
+def anonymize_data(json_data: str) -> Optional[str]:
 	"""
 	A function to save the data in a style anonymized in order to be in compliance with FERPA. For more information
 	see: https://studentprivacy.ed.gov/sites/default/files/resource_document/file/data_deidentification_terms.pdf
-	:param json_data:
-	:return:
+	:param json_data: The data that is going to be saved in string form
+	:return: A stringifyed version of the anonymized data or none if the data format is invalid
 	"""
-	json_data = json.loads(json_data)
+	json_data = json.loads(json_data)  # convert the data to a dict for easy indexing
 	for index, items in enumerate(json_data):
-		items["id"] = rand.randint(0, 100000000)
-		items["name"] = "null"
-	return json.dumps(json_data)
+		try:
+			items["id"] = rand.randint(0, 100000000)
+			items["name"] = "null"
+		except KeyError:
+			return None
+
+	return json.dumps(json_data)  # return the data in str form
 
 
-def save_data(request):
+@require_POST
+def save_data(request: HttpRequest) -> JsonResponse:
+	"""A endpoint to save the POST data
+	:param request: The current request as provided by django
+	:return: A JSONResponse containing either an error or a message saying the data was saved
+	"""
 	if not request.user.is_authenticated:
 		return error_generator("User is not logged in!", 401)
 
 	json_data = request.POST.get("data", "")
 
 	json_data = anonymize_data(json_data)
+	# TODO: Fix error code
+	if json_data is None: return error_generator("Improper data format detected!", 401)
 	current_data = Dataset.objects.create(
 		data=json_data
 	)
@@ -366,6 +448,7 @@ def save_data(request):
 
 
 def saved_data(request):
+	# This is an endpoint on the API that actually renders something, this may need to be changed.
 	if not request.user.is_authenticated:
 		return error_generator("User is not logged in!", 401)
 	load = False
@@ -377,27 +460,38 @@ def saved_data(request):
 	return render(request, 'saved_data.html', {"datasets": datasets, "load": load})
 
 
-def delete_data(request):
-	put = QueryDict(request.body)
+# TODO: Require PUT
+def delete_data(request: HttpRequest) -> JsonResponse:
+	"""
+	:param request: The current request as provided by django
+	:return: A Jsonresponse containing the result of the delete request
+	"""
+	put = QueryDict(request.body)  # Get the PUT request information
 	item_id = put.get("id")
-	Dataset.objects.get(id=item_id).delete()
-	response = JsonResponse({"success": "none"})
+	Dataset.objects.get(id=item_id).delete()  # Delete the object from the database
+	response = JsonResponse({"success": "none"})  # No important information is returned
 	response.status_code = 200
 	return response
 
 
-def set_oauth_url_cookie(request):
+@require_GET
+def set_oauth_url_cookie(request: HttpRequest) -> JsonResponse:
+	"""Sets the oauth cookie if needed
+	:param request: The current request as provided by django
+	:return: JSONResponse containing the cookie for the URL or a error
+	"""
 	url = request.GET.get("url", "")
-	client = get_client_id(f"https://{url}")
-	if client is not None:
-		if request.user.is_authenticated:
+	client = get_dev_key(f"https://{url}")
+	if client is not None:  # This checks if a dev key exists for the canvas installation
+		if request.user.is_authenticated:  # This checks if the user is recognized as logged in
+			# Checks if the token is not expired and the user is logging in on the same domain
 			if test_token(request.user.canvas_oauth2_token.access_token, url, client.dev) and \
 					f"https://{url}" in request.user.canvas_oauth2_token.url:
 				return error_generator("User already logged in on this domain!", 406)
 		response = JsonResponse({"success": "none"})
 		response.set_cookie("url", request.GET.get("url", ""))
 		response.status_code = 200
-		return response
+		return response  # Otherwise set the cookie for the current url to continue the OAuth2 process
 	else:
 		return error_generator("Unsupported version of canvas", 404)
 
@@ -408,6 +502,7 @@ def parse_data(data):
 
 # TODO: More research is required into potential security flaws of this endpoint
 @csrf_exempt
+@require_POST
 def mobile_endpoint(request):
 	# TODO Clean Data
 	data = request.POST.get("data", "")

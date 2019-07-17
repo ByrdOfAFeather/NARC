@@ -1,10 +1,12 @@
+"""File containing helpers in running the NARC process on data sent from the app.
+"""
 import tensorflow as tf
-import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 
 
 class AutoEncoder:
+	# TODO: Change so that the AutoEncoder model an be a singleton and the weights are simply reset at each training
 	"""Basic Autoencoder class
 	:param data_set: should be a numpy array
 	"""
@@ -17,21 +19,21 @@ class AutoEncoder:
 		self.data_set = scaler.fit_transform(self.data_set)
 
 	def _build_model(self):
-		self.decode = tf.keras.Sequential()
-		self.decode.add(tf.keras.layers.Dense(self.input_layer_size, activation="tanh"))
-		self.decode.add(tf.keras.layers.Dense(10, activation="tanh"))
-		self.decode.add(tf.keras.layers.Dense(5, activation="tanh"))
-		self.decode.add(tf.keras.layers.Dense(2, activation="tanh"))
-		self.decode.add(tf.keras.layers.Dense(5, activation="tanh"))
-		self.decode.add(tf.keras.layers.Dense(10, activation="tanh"))
-		self.decode.add(tf.keras.layers.Dense(self.input_layer_size, activation="linear"))
+		self.model = tf.keras.Sequential()
+		self.model.add(tf.keras.layers.Dense(self.input_layer_size, activation="tanh"))
+		self.model.add(tf.keras.layers.Dense(10, activation="tanh"))
+		self.model.add(tf.keras.layers.Dense(5, activation="tanh"))
+		self.model.add(tf.keras.layers.Dense(2, activation="tanh"))
+		self.model.add(tf.keras.layers.Dense(5, activation="tanh"))
+		self.model.add(tf.keras.layers.Dense(10, activation="tanh"))
+		self.model.add(tf.keras.layers.Dense(self.input_layer_size, activation="linear"))
 
 	def _train_model(self):
-		self.decode.compile(optimizer="adam",
-		                    loss="MSE")
-		# TODO: Implement shuffling
-		self.decode.fit(x=self.data_set, y=self.data_set, epochs=1000)
-		return self.decode.predict(self.data_set)
+		self.model.compile(optimizer="adam",
+		                   loss="MSE")
+		# TODO: Implement shuffling (Maybe)
+		self.model.fit(x=self.data_set, y=self.data_set, epochs=1000)
+		return self.model.predict(self.data_set)
 
 	def separate(self):
 		self._scale_data()
@@ -39,7 +41,7 @@ class AutoEncoder:
 		self._train_model()
 		anons = []
 		non_anons = []
-		predictions = self.decode.predict(self.data_set)
+		predictions = self.model.predict(self.data_set)
 		indiv_error = tf.math.reduce_mean(self.data_set - predictions, axis=1)
 		avg_error = tf.math.reduce_mean(self.data_set - predictions)
 		error_cond = tf.math.greater_equal(indiv_error, avg_error)
