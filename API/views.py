@@ -7,16 +7,21 @@ from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 from django.http import JsonResponse
 from django.contrib.auth.models import User
-from rest_framework.authentication import BasicAuthentication, SessionAuthentication, TokenAuthentication
+from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.models import Token
+from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
 from API.predictors import classify
+from API.serializers import CustomAuthSerializer, UserSerializer
+from API.models import Queuer, NotificationToken
 from CanvasWrapper.views import error_generator
-from API.models import Queuer
 
 
 def get_key(encryption_key: str) -> bytes:
@@ -41,10 +46,11 @@ def parse_data(data):
 	return frame
 
 
-def push_notification(cheaters: bytes, non_cheaters: bytes) -> None:
+def push_notification(cheaters: bytes, non_cheaters: bytes, user: User) -> None:
 	"""WIP. Sends a push notification to the device from which the request originated (TODO: UPDATE DOCUMENTATION)
 	:param cheaters: Bytes like encrypted data that represents the cheaters
 	:param non_cheaters: Bytes like encrypted data that represents the non cheaters
+	:param user: The user that originally sent the request for the data to be processed
 	:return:
 	"""
 	push_json = {"notification": {
@@ -66,7 +72,7 @@ def push_notification(cheaters: bytes, non_cheaters: bytes) -> None:
 	pass
 
 
-def process_mobile_data(data):
+def process_mobile_data(data, user):
 	del data["secret"]
 	# TODO Actually interpret this data
 	storage = data["storage"]
@@ -85,12 +91,12 @@ def process_mobile_data(data):
 
 	queue.currently_running = False
 	queue.save()
-	push_notification(cheaters, non_cheaters)
+	push_notification(cheaters, non_cheaters, user)
 
 
 # TODO: More research is required into securing this API
 @api_view(["POST"])
-@authentication_classes([SessionAuthentication, TokenAuthentication, BasicAuthentication])
+@authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def mobile_endpoint(request):
 	# TODO Clean Data
@@ -108,7 +114,7 @@ def mobile_endpoint(request):
 			queuer.currently_running = True
 			queuer.save()
 			# process_mobile_data.dely(data, task_id)
-			task = threading.Thread(target=process_mobile_data, args=[data])
+			task = threading.Thread(target=process_mobile_data, args=[data, request.user])
 			task.start()
 			response = JsonResponse({"success": {"data": "Your data is being processed and will be returned soon!"}})
 			response.status_code = 200
@@ -139,3 +145,44 @@ def create_user(request):
 	response = JsonResponse({"success": {"data": {"token": token}}})
 	response.status_code = 200
 	return response
+
+
+@api_view(["POST"])
+def register_user(request):
+	serialized = UserSerializer(data=request.data)
+	if serialized.is_valid():
+		user = User.objects.create(
+			username=serialized.initial_data["username"],
+		)
+		user.set_password(serialized.initial_data["password"])
+
+		NotificationToken.objects.create(user=user, notification_key=serialized.initial_data["notification_token"])
+
+		token, created = Token.objects.get_or_create(user=user)
+		return Response({"success": {"data": {"token": token.key}}}, status=200)
+	else:
+		print(serialized.errors)
+		return Response({"error": {"data": serialized.errors}}, status=406)
+
+
+class CustomObtainAuthToken(ObtainAuthToken):
+	# TODO: Come back and see why exactly this is returning 400 for invalid authorization
+	serializer_class = CustomAuthSerializer
+
+	def post(self, request, *args, **kwargs):
+		serializer = self.serializer_class(data=request.data,
+		                                  context={'request': request})
+		serializer.is_valid(raise_exception=True)
+		user = serializer.validated_data["user"]
+		notification_token = serializer.validated_data["notification_token"]
+		token = NotificationToken.objects.filter(user=user)
+		if token.count():
+			token = token[0]
+			token.notification_key = notification_token
+			token.save()
+		else:
+			NotificationToken.objects.create(user=user, notification_key=notification_token)
+
+		token, created = Token.objects.get_or_create(user=user)
+		return Response({"success": {"data": {"token": token.key}}}, status=200)
+
