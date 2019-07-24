@@ -1,7 +1,7 @@
 from django.contrib import admin
-from API.models import NotificationToken
+from API.models import Queuer
 
-# Register your models here.
-@admin.register(NotificationToken)
-class NotificationTokenAdmin(admin.ModelAdmin):
-	model = NotificationToken
+
+@admin.register(Queuer)
+class QueuerAdmin(admin.ModelAdmin):
+	model = Queuer

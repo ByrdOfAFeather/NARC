@@ -10,3 +10,4 @@ numpy==1.16.3
 pandas==0.24.2
 cryptography==2.7
 djangorestframework==3.10.1
+fcm-django==0.2.21

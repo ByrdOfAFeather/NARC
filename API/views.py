@@ -2,6 +2,8 @@ import base64
 import json
 import os
 import threading
+from typing import Optional
+
 import pandas as pd
 from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
@@ -11,6 +13,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.http import JsonResponse
 from django.contrib.auth.models import User
+from fcm_django.models import FCMDevice
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
@@ -20,7 +23,7 @@ from rest_framework.response import Response
 
 from API.predictors import classify
 from API.serializers import CustomAuthSerializer, UserSerializer
-from API.models import Queuer, NotificationToken
+from API.models import Queuer
 from CanvasWrapper.views import error_generator
 
 
@@ -46,29 +49,37 @@ def parse_data(data):
 	return frame
 
 
-def push_notification(cheaters: bytes, non_cheaters: bytes, user: User) -> None:
+def push_notification(cheaters: Optional[str], non_cheaters: Optional[str], user: User) -> None:
 	"""WIP. Sends a push notification to the device from which the request originated (TODO: UPDATE DOCUMENTATION)
 	:param cheaters: Bytes like encrypted data that represents the cheaters
 	:param non_cheaters: Bytes like encrypted data that represents the non cheaters
 	:param user: The user that originally sent the request for the data to be processed
 	:return:
 	"""
-	push_json = {"notification": {
-		"title": "Data Processed!",
-		"body": "The results for your recent request are ready to be reviewed!",
-	},
-		"data": {
+	device = FCMDevice.objects.get(user=user)
+	if cheaters is None:
+		data = {
 			"click_action": "FLUTTER_NOTIFICATION_CLICK",
-			"sound": "default",
+			"screen": "resultsScreen",
 			"status": "done",
-			"screen": "results",
+			"sound": "default",
 			"results": {
-				"cheaters": str(cheaters)[2:-1],
-				"non_cheaters": str(non_cheaters)[2:-1],
+				"message": "Could not separate data into cheaters and non cheaters!"
 			}
 		}
-	}
-	print("DATA IS READY TO BE RETRIEVED")
+	else:
+		data = {
+			"click_action": "FLUTTER_NOTIFICATION_CLICK",
+			"screen": "resultsScreen",
+			"status": "done",
+			"sound": "default",
+			"results": {
+				"cheaters": cheaters,
+				"non_cheaters": non_cheaters,
+			}
+		}
+
+	device.send_message(title="Data ready to view!", body="A quiz has been scanned for cheaters!", data=data)
 	pass
 
 
@@ -82,11 +93,12 @@ def process_mobile_data(data, user):
 
 	data = parse_data(data)
 	cheaters, non_cheaters = classify(data)
-	cheaters, non_cheaters = json.dumps(cheaters).encode(), json.dumps(non_cheaters).encode()
 
-	encryptor = Fernet(key)
-	cheaters = encryptor.encrypt(cheaters)
-	non_cheaters = encryptor.encrypt(non_cheaters)
+	if cheaters is None:
+		push_notification(None, None, user)
+
+	cheaters, non_cheaters = json.dumps(cheaters), json.dumps(non_cheaters)
+
 	queue = Queuer.objects.get(unique_name="Task Queue")
 
 	queue.currently_running = False
@@ -113,7 +125,6 @@ def mobile_endpoint(request):
 
 			queuer.currently_running = True
 			queuer.save()
-			# process_mobile_data.dely(data, task_id)
 			task = threading.Thread(target=process_mobile_data, args=[data, request.user])
 			task.start()
 			response = JsonResponse({"success": {"data": "Your data is being processed and will be returned soon!"}})
@@ -152,11 +163,13 @@ def register_user(request):
 	serialized = UserSerializer(data=request.data)
 	if serialized.is_valid():
 		user = User.objects.create(
-			username=serialized.initial_data["username"],
+			username=serialized.validated_data["username"],
 		)
-		user.set_password(serialized.initial_data["password"])
+		user.set_password(serialized.validated_data["password"])
 
-		NotificationToken.objects.create(user=user, notification_key=serialized.initial_data["notification_token"])
+		FCMDevice.objects.create(user=user,
+		                         registration_id=serialized.validated_data["notification_token"],
+		                         type=serialized.validated_data["device"])
 
 		token, created = Token.objects.get_or_create(user=user)
 		return Response({"success": {"data": {"token": token.key}}}, status=200)
@@ -166,7 +179,7 @@ def register_user(request):
 
 
 class CustomObtainAuthToken(ObtainAuthToken):
-	# TODO: Come back and see why exactly this is returning 400 for invalid authorization
+	# TODO: Create logic for logging in from a new device!
 	serializer_class = CustomAuthSerializer
 
 	def post(self, request, *args, **kwargs):
@@ -175,13 +188,15 @@ class CustomObtainAuthToken(ObtainAuthToken):
 		serializer.is_valid(raise_exception=True)
 		user = serializer.validated_data["user"]
 		notification_token = serializer.validated_data["notification_token"]
-		token = NotificationToken.objects.filter(user=user)
+		token = FCMDevice.objects.filter(user=user)
 		if token.count():
 			token = token[0]
 			token.notification_key = notification_token
 			token.save()
 		else:
-			NotificationToken.objects.create(user=user, notification_key=notification_token)
+			FCMDevice.objects.create(user=user,
+			                         registration_id=notification_token,
+			                         type=serializer.validated_data["device"])
 
 		token, created = Token.objects.get_or_create(user=user)
 		return Response({"success": {"data": {"token": token.key}}}, status=200)

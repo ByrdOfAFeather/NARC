@@ -39,10 +39,18 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework.authtoken',
+    'fcm_django',
     'CanvasWrapper.apps.CanvaswrapperConfig',
     'Main.apps.MainConfig',
     'API.apps.ApiConfig',
 ]
+
+FCM_DJANGO_SETTINGS = {
+    "APP_VERBOSE_NAME": "NARC",
+    "FCM_SERVER_KEY": os.environ.get("FCM_SERVER_KEY", ""),
+    "ONE_DEVICE_PER_USER": True,
+    "DELETE_INACTIVE_DEVICES": True
+}
 
 MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',

@@ -1,24 +1,25 @@
 """File containing helpers in running the NARC process on data sent from the app.
 """
 import tensorflow as tf
+import numpy as np
+import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 
 
 class AutoEncoder:
-	# TODO: Change so that the AutoEncoder model an be a singleton and the weights are simply reset at each training
-	"""Basic Autoencoder class
-	:param data_set: should be a numpy array
+	"""A generic class representing a predesignated autoencoder
 	"""
-	def __init__(self, data_set):
+	# TODO: Change so that the AutoEncoder model an be a singleton and the weights are simply reset at each training
+	def __init__(self, data_set: np.array):
 		self.data_set = data_set
 		self.input_layer_size = data_set.shape[1]
 
-	def _scale_data(self):
+	def _scale_data(self) -> None:
 		scaler = StandardScaler()
 		self.data_set = scaler.fit_transform(self.data_set)
 
-	def _build_model(self):
+	def _build_model(self) -> None:
 		self.model = tf.keras.Sequential()
 		self.model.add(tf.keras.layers.Dense(self.input_layer_size, activation="tanh"))
 		self.model.add(tf.keras.layers.Dense(10, activation="tanh"))
@@ -28,14 +29,14 @@ class AutoEncoder:
 		self.model.add(tf.keras.layers.Dense(10, activation="tanh"))
 		self.model.add(tf.keras.layers.Dense(self.input_layer_size, activation="linear"))
 
-	def _train_model(self):
+	def _train_model(self) -> np.array:
 		self.model.compile(optimizer="adam",
 		                   loss="MSE")
 		# TODO: Implement shuffling (Maybe)
 		self.model.fit(x=self.data_set, y=self.data_set, epochs=1000)
 		return self.model.predict(self.data_set)
 
-	def separate(self):
+	def separate(self) -> tuple:
 		self._scale_data()
 		self._build_model()
 		self._train_model()
@@ -62,10 +63,17 @@ class KMeansSeparator:
 
 
 def returned_tolist(array):
+	# key = ""
+	# for x in array:
+	# 	x = str(x)
+	# 	key += x
+	# key = hashlib.sha3_256(key).hex
 	return array.tolist()
 
 
-def classify(org_data):
+def classify(org_data: pd.DataFrame) -> tuple:
+	# hash_data = org_data.drop(["name", "id"])
+	# hash_data.apply(lambda row: hasher(), axis=1)
 	numpy_data = org_data.loc[list(org_data.index)].drop(["name", "id"], axis=1).values
 	predictor = AutoEncoder(numpy_data)
 	anon, non_anon = predictor.separate()
@@ -81,6 +89,10 @@ def classify(org_data):
 		actual_anon_pos += 1
 
 	meanie = KMeansSeparator()
+
+	if len(anon) <= 1:
+		return None, None
+
 	classes = meanie.seperate([item[1] for item in anon])
 
 	zeros = []
