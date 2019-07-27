@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
+import hashlib
 
 
 class AutoEncoder:
@@ -36,7 +37,7 @@ class AutoEncoder:
 		self.model.fit(x=self.data_set, y=self.data_set, epochs=1000)
 		return self.model.predict(self.data_set)
 
-	def separate(self) -> tuple:
+	def separate(self, hashes) -> tuple:
 		self._scale_data()
 		self._build_model()
 		self._train_model()
@@ -50,7 +51,7 @@ class AutoEncoder:
 			if students:
 				anons.append((index, self.data_set[index]))
 			else:
-				non_anons.append((index, self.data_set[index].tolist()))
+				non_anons.append(hashes[index])
 		return anons, non_anons
 
 
@@ -71,12 +72,19 @@ def returned_tolist(array):
 	return array.tolist()
 
 
+def hasher(cur_row, hashes):
+	string = str(cur_row["average_time_between_questions"]) + str(cur_row["time_taken"]) + str(cur_row["page_leaves"])
+	hashes.append(hashlib.sha256(string.encode()).hexdigest())
+
+
 def classify(org_data: pd.DataFrame) -> tuple:
-	# hash_data = org_data.drop(["name", "id"])
-	# hash_data.apply(lambda row: hasher(), axis=1)
+	hashes = []
+	hash_data = org_data.drop(["name", "id"], axis=1)
+
+	hash_data.apply(lambda row: hasher(row, hashes), axis=1)
 	numpy_data = org_data.loc[list(org_data.index)].drop(["name", "id"], axis=1).values
 	predictor = AutoEncoder(numpy_data)
-	anon, non_anon = predictor.separate()
+	anon, non_anon = predictor.separate(hashes)
 	anon_dict = {}
 
 	actual_anon_pos = 0
@@ -112,14 +120,18 @@ def classify(org_data: pd.DataFrame) -> tuple:
 	zero_sum_squared = (sum([org_data.loc[anon_dict[index]["id"], "page_leaves"] for index in zeros]) / len(zeros)) ** 2
 
 	if one_sum_squared > zero_sum_squared:
-		for non_cheat in zeros: non_anon.append((anon_dict[non_cheat]["org_index"], returned_tolist(anon_dict[non_cheat]["data"])))
+		# for non_cheat in zeros: non_anon.append((anon_dict[non_cheat]["org_index"], returned_tolist(anon_dict[non_cheat]["data"])))
+		for non_cheat in zeros: non_anon.append(hashes[anon_dict[non_cheat]["org_index"]])
 		cheat_list = []
-		for cheat in zeros: cheat_list.append((anon_dict[cheat]["org_index"], returned_tolist(anon_dict[cheat]["data"])))
+		# for cheat in zeros: cheat_list.append((anon_dict[cheat]["org_index"], returned_tolist(anon_dict[cheat]["data"])))
+		for cheat in ones: cheat_list.append(hashes[anon_dict[cheat]["org_index"]])
 		return cheat_list, non_anon
 	elif zero_sum_squared > one_sum_squared:
-		for non_cheat in ones: non_anon.append((anon_dict[non_cheat]["org_index"], returned_tolist(anon_dict[non_cheat]["data"])))
+		# for non_cheat in ones: non_anon.append((anon_dict[non_cheat]["org_index"], returned_tolist(anon_dict[non_cheat]["data"])))
+		for non_cheat in ones: non_anon.append(hashes[anon_dict[non_cheat]["org_index"]])
 		cheat_list = []
-		for cheat in zeros: cheat_list.append((anon_dict[cheat]["org_index"], returned_tolist(anon_dict[cheat]["data"])))
+		# for cheat in zeros: cheat_list.append((anon_dict[cheat]["org_index"], returned_tolist(anon_dict[cheat]["data"])))
+		for cheat in zeros: cheat_list.append(hashes[anon_dict[cheat]["org_index"]])
 		return cheat_list, non_anon
 	else:
 		return None, None

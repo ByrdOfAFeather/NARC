@@ -49,7 +49,7 @@ def parse_data(data):
 	return frame
 
 
-def push_notification(cheaters: Optional[str], non_cheaters: Optional[str], user: User) -> None:
+def push_notification(cheaters: Optional[list], non_cheaters: Optional[list], user: User) -> None:
 	"""WIP. Sends a push notification to the device from which the request originated (TODO: UPDATE DOCUMENTATION)
 	:param cheaters: Bytes like encrypted data that represents the cheaters
 	:param non_cheaters: Bytes like encrypted data that represents the non cheaters
@@ -60,7 +60,7 @@ def push_notification(cheaters: Optional[str], non_cheaters: Optional[str], user
 	if cheaters is None:
 		data = {
 			"click_action": "FLUTTER_NOTIFICATION_CLICK",
-			"screen": "resultsScreen",
+			"screen": "/results",
 			"status": "done",
 			"sound": "default",
 			"results": {
@@ -70,7 +70,7 @@ def push_notification(cheaters: Optional[str], non_cheaters: Optional[str], user
 	else:
 		data = {
 			"click_action": "FLUTTER_NOTIFICATION_CLICK",
-			"screen": "resultsScreen",
+			"screen": "/results",
 			"status": "done",
 			"sound": "default",
 			"results": {
@@ -97,7 +97,7 @@ def process_mobile_data(data, user):
 	if cheaters is None:
 		push_notification(None, None, user)
 
-	cheaters, non_cheaters = json.dumps(cheaters), json.dumps(non_cheaters)
+	cheaters, non_cheaters = cheaters, non_cheaters
 
 	queue = Queuer.objects.get(unique_name="Task Queue")
 
