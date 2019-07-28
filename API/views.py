@@ -27,29 +27,12 @@ from API.models import Queuer
 from CanvasWrapper.views import error_generator
 
 
-def get_key(encryption_key: str) -> bytes:
-	"""Gets a suitable base64encoded key based on the string passed
-	:param encryption_key: A string (probably user provided) that will serve as the key for the encryption
-	:return: A bytes-like to be used in encryption
-	"""
-	encryption_key = encryption_key.encode()  # Converts the key to a bytes object
-	salt = os.environ.get("SALT_KEY", "I'm just a placeholder for development!").encode()  # Gets the salt key
-	kdf = PBKDF2HMAC(  # Builds a object to derive the key
-		algorithm=hashes.SHA256(),
-		length=32,
-		salt=salt,
-		iterations=100000,
-		backend=default_backend()
-	)
-	return base64.urlsafe_b64encode(kdf.derive(encryption_key))  # Returns the key
-
-
 def parse_data(data):
 	frame = pd.DataFrame.from_dict(data, orient="index")
 	return frame
 
 
-def push_notification(cheaters: Optional[list], non_cheaters: Optional[list], user: User) -> None:
+def push_notification(cheaters: Optional[list], non_cheaters: Optional[list], quiz_name: str, user: User) -> None:
 	"""WIP. Sends a push notification to the device from which the request originated (TODO: UPDATE DOCUMENTATION)
 	:param cheaters: Bytes like encrypted data that represents the cheaters
 	:param non_cheaters: Bytes like encrypted data that represents the non cheaters
@@ -74,6 +57,7 @@ def push_notification(cheaters: Optional[list], non_cheaters: Optional[list], us
 			"status": "done",
 			"sound": "default",
 			"results": {
+				"for": quiz_name,
 				"cheaters": cheaters,
 				"non_cheaters": non_cheaters,
 			}
@@ -88,14 +72,14 @@ def process_mobile_data(data, user):
 	# TODO Actually interpret this data
 	storage = data["storage"]
 	del data["storage"]
-	key = get_key(data["encryption_key"])
-	del data["encryption_key"]
+	quiz_name = data["quiz_name"]
+	del data["quiz_name"]
 
 	data = parse_data(data)
 	cheaters, non_cheaters = classify(data)
 
 	if cheaters is None:
-		push_notification(None, None, user)
+		push_notification(None, None, quiz_name, user)
 
 	cheaters, non_cheaters = cheaters, non_cheaters
 
@@ -103,7 +87,7 @@ def process_mobile_data(data, user):
 
 	queue.currently_running = False
 	queue.save()
-	push_notification(cheaters, non_cheaters, user)
+	push_notification(cheaters, non_cheaters, quiz_name, user)
 
 
 # TODO: More research is required into securing this API
