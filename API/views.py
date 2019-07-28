@@ -1,18 +1,11 @@
-import base64
 import json
 import os
 import threading
 from typing import Optional
 
 import pandas as pd
-from cryptography.fernet import Fernet
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-from django.contrib.auth.password_validation import validate_password
-from django.core.exceptions import ValidationError
-from django.http import JsonResponse
 from django.contrib.auth.models import User
+from django.http import JsonResponse
 from fcm_django.models import FCMDevice
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.models import Token
@@ -21,9 +14,9 @@ from rest_framework.decorators import api_view, authentication_classes, permissi
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from API.models import Queuer
 from API.predictors import classify
 from API.serializers import CustomAuthSerializer, UserSerializer
-from API.models import Queuer
 from CanvasWrapper.views import error_generator
 
 
@@ -47,6 +40,7 @@ def push_notification(cheaters: Optional[list], non_cheaters: Optional[list], qu
 			"status": "done",
 			"sound": "default",
 			"results": {
+				"for": quiz_name,
 				"message": "Could not separate data into cheaters and non cheaters!"
 			}
 		}
