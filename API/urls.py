@@ -1,5 +1,5 @@
 from django.urls import path
-from rest_framework.authtoken import views as v
+
 from . import views
 
 app_name = "api"

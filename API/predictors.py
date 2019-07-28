@@ -1,11 +1,12 @@
 """File containing helpers in running the NARC process on data sent from the app.
 """
-import tensorflow as tf
+import hashlib
+
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import StandardScaler
+import tensorflow as tf
 from sklearn.cluster import KMeans
-import hashlib
+from sklearn.preprocessing import StandardScaler
 
 
 class AutoEncoder:
@@ -34,7 +35,7 @@ class AutoEncoder:
 		self.model.compile(optimizer="adam",
 		                   loss="MSE")
 		# TODO: Implement shuffling (Maybe)
-		self.model.fit(x=self.data_set, y=self.data_set, epochs=1000)
+		self.model.fit(x=self.data_set, y=self.data_set, epochs=5000)
 		return self.model.predict(self.data_set)
 
 	def separate(self, hashes) -> tuple:
