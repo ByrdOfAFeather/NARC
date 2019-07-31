@@ -144,6 +144,7 @@ def register_user(request):
 			username=serialized.validated_data["username"],
 		)
 		user.set_password(serialized.validated_data["password"])
+		user.save()
 
 		FCMDevice.objects.create(user=user,
 		                         registration_id=serialized.validated_data["notification_token"],
