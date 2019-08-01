@@ -5,6 +5,9 @@
     <link rel="stylesheet" href="{% static 'css/about.css' %}">
 {% endblock %}
 {% block body %}
+    <button onclick="window.location.replace('{% url 'mainpages:what-we-do' %}');"></button>
+    <button onclick="window.location.replace('{% url 'mainpages:privacy-policy' %}');"></button>
+    <button onclick="window.location.replace('{% url 'mainpages:privacy-act-compliance ' %}');"></button>
     {% block settings_menu %} {% endblock %}
     {% block settings_menu_scripts %}{% endblock %}
     <h1 class="title">What It Is:</h1>

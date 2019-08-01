@@ -17,6 +17,7 @@ from rest_framework.response import Response
 from API.models import Queuer
 from API.predictors import classify
 from API.serializers import CustomAuthSerializer, UserSerializer
+from CanvasWrapper.models import Dataset, UserToDataset
 from CanvasWrapper.views import error_generator
 
 
@@ -61,13 +62,21 @@ def push_notification(cheaters: Optional[list], non_cheaters: Optional[list], qu
 	pass
 
 
+def save_data(data, user):
+	new_set = Dataset.objects.create(data=json.dumps(data))
+	UserToDataset.objects.create(user=user, dataset=new_set)
+
+
 def process_mobile_data(data, user):
 	del data["secret"]
-	# TODO Actually interpret this data
-	storage = data["storage"]
-	del data["storage"]
+
 	quiz_name = data["quiz_name"]
 	del data["quiz_name"]
+
+	storage = data["storage"]
+	del data["storage"]
+	if storage:
+		save_data(data, user)
 
 	data = parse_data(data)
 	cheaters, non_cheaters = classify(data)

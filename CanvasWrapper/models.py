@@ -1,6 +1,6 @@
+from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
-from django.contrib.auth.models import User
 
 
 class AuthorizedUser(models.Model):
@@ -32,5 +32,6 @@ class Dataset(models.Model):
 
 
 class UserToDataset(models.Model):
-	user = models.ForeignKey(AuthorizedUser, on_delete=models.CASCADE)
+	# TODO: update website portion to reflect migration that changed from auth. user to user
+	user = models.ForeignKey(User, on_delete=models.CASCADE)
 	dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE)
