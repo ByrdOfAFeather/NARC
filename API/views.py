@@ -14,7 +14,7 @@ from rest_framework.decorators import api_view, authentication_classes, permissi
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from API.models import Queuer
+from API.models import Queuer, Report, UserToReport
 from API.predictors import classify
 from API.serializers import CustomAuthSerializer, UserSerializer
 from CanvasWrapper.models import Dataset, UserToDataset
@@ -189,3 +189,16 @@ class CustomObtainAuthToken(ObtainAuthToken):
 		token, created = Token.objects.get_or_create(user=user)
 		return Response({"success": {"data": {"token": token.key}}}, status=200)
 
+
+@api_view(["POST"])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def submit_report(request):
+	data = json.loads(request.data["data"])
+	if data["report"]:
+		data = data["report"]
+		new_report = Report.objects.create(report_desc=data)
+		UserToReport.objects.create(user=request.user, report=new_report)
+		return Response({"success": {"data": "none"}}, status=200)
+	else:
+		Response({"error": {"data": "report can't be empty!"}})

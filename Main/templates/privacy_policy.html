@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block body %}
+    {% block settings_menu %} {% endblock %}
+    {% block settings_menu_scripts %}{% endblock %}
+    <iframe src="https://app.termly.io/document/privacy-policy/a9eae713-51e5-4409-84db-b57486b64688"></iframe>
+    <p>Please note: NARC is currently not a legally registered company. This is done as a side project while I'm in
+        university.
+        I acknowledge this does not release me from any responsibilities when handling educational data including but
+        not limited to
+        adhering to FERPA and COPPA. I only point this out for the understanding that I do not have a team of lawyers to
+        write
+        a non-generic privacy policy. So I used "Termly" to make one that aligns to this site's and the mobile app's
+        data collection polices. Here, I
+        will put what I imagine to be FAQ about how NARC handles data.</p>
+
+    <h2>Why does the mobile version work differently than the web version?</h2>
+    <p>Canvas has it in it's policy that applications serving multiple users have to use their OAuth2 implementation to
+        get API access. The website falls into this category, however, the mobile app does not. All Canvas interfacing
+        in the mobile
+        version is done by the user on the phone. While on the website it is done by the server using a token gained
+        from OAuth.</p>
+
+    <h2>Does NARC store my Canvas credentials?</h2>
+    <p>No, NARC only ever stores your user account and it's OAuth2 authorization information.</p>
+
+    <h3>What does NARC use the Canvas API for?</h3>
+    <p>On all versions, NARC only uses the /courses/ /courses/id/modules /courses/quizzes/
+        /courses/quizzes/id/submissions
+        /courses/quizzes/id/submissions/id/events and /users/id endpoints. The only time NARC accesses the users/id
+        endpoint
+        is to get the names of students for the final display. This information is NEVER stored. NARC does not ability
+        to store
+        data that has not had identification information removed.</p>
+
+    <h2>How does NARC remove personal information from datasets?</h2>
+    <p>NARC removes personal information by setting all names to "null" and changing the IDs to a random number that is
+        not based on the dataset. See <a href="">here</a> for the implementation.</p>
+
+    <h2>How does NARC comply with FERPA and COPPA exactly?</h2>
+    <p>I had this question as well, for more information about NARC and it's compliance with federal regulations see <a
+            href="{% url 'mainpages:ferpa-act-compliance' %}">here</a></p>
+{% endblock %}

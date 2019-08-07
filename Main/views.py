@@ -1,17 +1,19 @@
 """Views representing the main front end of the website
 """
-# TODO: COPPA Compliance is best achieved by asking a user if the dataset contains users below or at the age of 13
-from django.shortcuts import render
+import hashlib
+from datetime import timedelta
+
+import requests
+from django.contrib.auth import authenticate, login
+from django.contrib.auth.models import User
 from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseRedirect
-from django.contrib.auth.models import User
-from django.contrib.auth import authenticate, login
+# TODO: COPPA Compliance is best achieved by asking a user if the dataset contains users below or at the age of 13
+from django.shortcuts import render
 from django.utils import timezone
+
 from CanvasWrapper.models import AuthorizedUser
 from CanvasWrapper.views import get_dev_key
-from datetime import timedelta
-import requests
-import hashlib
 
 
 def index(request: HttpRequest) -> HttpResponse:
@@ -116,3 +118,14 @@ def oauth_authorization(request: HttpRequest) -> HttpResponse:
 		# TODO: Changed URL!!!
 		return HttpResponseRedirect(f"https://{url}/login/oauth2/auth?client_id={client.client_id}&response_type=code&state={client.state}&redirect_uri=http://127.0.0.1:8000/oauth_confirm")
 
+
+def what_we_do(request):
+	return render(request, "what_we_do.html")
+
+
+def privacy_policy(request):
+	return render(request, "privacy_policy.html")
+
+
+def ferpa_act_compliance(request):
+	return render(request, "ferpa_act_compliance.html")
