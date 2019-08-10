@@ -58,7 +58,7 @@ def push_notification(cheaters: Optional[list], non_cheaters: Optional[list], qu
 			}
 		}
 
-	device.send_message(title="Data ready to view!", body="A quiz has been scanned for cheaters!", data=data)
+	device.send_message(data=data)
 	pass
 
 
