@@ -59,6 +59,8 @@ def push_notification(cheaters: Optional[list], non_cheaters: Optional[list], qu
 		}
 
 	device.send_message(data=data)
+	device.send_message(title="Quiz Results Received!", body="The results for a quiz have been received!",
+	                    data={"type": "notification", "click_action": "FLUTTER_NOTIFICATION_CLICK"})
 	pass
 
 
