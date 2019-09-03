@@ -15,6 +15,9 @@
     {% endif %}
     {% block settings_menu %} {% endblock %}
     {% block settings_menu_scripts %}{% endblock %}
+    {% block home_button %}{% endblock %}
+    {% block home_button_scripts %}{% endblock %}
+
     {% block extras %}
         <script type="text/javascript">
             // Placeholder for actual privacy policy
@@ -60,13 +63,67 @@
                 }
             }
         </script>
-
     {% endblock %}
-    <div>
-    <img src ="{% static 'images/login.png' %}" id="login-btn" class="button" onclick='getAPIInfo();' alt="click to login">
-    <a href="{% url 'mainpages:about' %}"><img src ="{% static 'images/about.png' %}" id="about-btn" class="button" alt="click to login"></a>
-    <a href="{% url 'mainpages:contact' %}"><img src ="{% static 'images/CONTACT.png' %}" id="contact-btn" class="button" alt="click to login"></a>
-    </div>
+
+    <section class="section" id="title-section">
+        <div class="container">
+            <div class="columns is-centered">
+                <div class="column has-text-centered">
+                    <h1 class="title-has-julius">NARC</h1>
+                    <h4 class="subtitle-has-julius">A novel cheat detection system</h4>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" id="logo-section">
+        <div class="container">
+            <div class="columns is-centered">
+                <div class="column is-one-third">
+                    <figure class="image">
+                        <a href="javascript:getAPIInfo();"><img class="clickable" src="{% static 'images/narc.png' %}" alt="NARC-Logo"></a>
+                    </figure>
+                </div>
+            </div>
+        </div>
+    </section>
+    <hr>
+    <section class="section">
+        <div class="container has-text-centered">
+            <h1 class="title-has-julius">ABOUT</h1>
+            <div class="columns is-centered">
+                <div class="column large-text">
+                    <p>NARC is a cheat detection system utilizing modern deep learning technologies. It's primary
+                    target is Canvas LMS, but will hopefully support a variety of platforms in the future. Want to know
+                        how it works, or how it keeps your data safe? Learn more<a href="{% url 'mainpages:about' %}">here</a></p>
+                </div>
+            </div>
+        </div>
+    </section>
+    <hr>
+    <section class="section">
+        <div class="container has-text-centered">
+            <h1 class="title-has-julius">LOGIN</h1>
+            <div class="columns is-centered">
+                <div class="column large-text">
+                    <p>Ready to start trying to find cheaters?<a href="javascript:getAPIInfo();">Login</a></p>
+                </div>
+            </div>
+        </div>
+    </section>
+    <hr>
+    <section class="section">
+        <div class="container has-text-centered">
+            <h1 class="title-has-julius">CONTACT</h1>
+            <div class="columns is-centered">
+                <div class="column large-text">
+                    <p>Still have questions? Visit us on<a href="https://www.github.com/byrdofafeather/NARC">github</a> or
+                    send an<a href="{% url 'mainpages:about' %}">email</a></p>
+                </div>
+            </div>
+        </div>
+    </section>
+    <hr>
     {% if logged_in %}
         <p>
             It appears you have already logged in! If you want to login with a different token click the button below,

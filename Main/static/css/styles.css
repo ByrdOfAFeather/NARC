@@ -1,52 +1,36 @@
-#login-btn {
-    /* Coloring */
-    /*background: #0e8e0e;*/
-    color: white;
-
-    /*border-radius: 25px;*/
-    width: 400px;
-    height: 400px;
-    /*border: none;*/
-
-    /* Centering */
-    -webkit-transform: translate(-50%,-50%);
-    transform: translate(-50%,-50%);
-    position: absolute;
-    top: 50%;
-    left: 50%;
-
-    /* Font Work */
-    /*font-family: 'Consolas', 'Deja Vu Sans Mono', 'Bitstream Vera Sans Mono', monospace;*/
-    /*font-size: 2em;*/
+.nav-link {
+    font-family: 'Julius Sans One', sans-serif;
+    font-size: 3em;
+    text-decoration: none;
+    color: black;
 }
 
-#about-btn {
-    position: absolute;
-    top: 64%;
-    left: 30%;
-    width: 165px;
-    height: 42.203px;
-}
-
-#contact-btn {
-    position: absolute;
-    top: 64.5%;
-    left: 61%;
-    width: 165px;
-    height: 36px;
-}
-
-.button:hover {
-    /*background: #0e680e;*/
+.nav-link:hover {
     opacity: .5;
-    cursor: pointer;
 }
 
-/* https://jqueryui.com/progressbar/#label */
-#progresslabel {
-    position: absolute;
-    left: 50%;
-    top: 4px;
-    font-weight: bold;
-    text-shadow: 1px 1px 0 #fff;
+.large-text {
+    font-size: 2em;
+}
+
+#navigation-section {
+    padding-top: 0;
+}
+
+#logo-section {
+    padding-bottom: 0;
+    padding-top: 0;
+}
+
+#title-section {
+    padding-bottom: 0;
+}
+
+.clickable:hover {
+    opacity: .5;
+}
+
+.title-link {
+    text-decoration: none;
+    color: #4a4a4a;
 }

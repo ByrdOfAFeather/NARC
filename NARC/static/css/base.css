@@ -42,3 +42,13 @@
     opacity: .5;
     cursor: pointer;
 }
+
+.title-has-julius {
+    font-family: 'Julius Sans One', sans-serif;
+    font-size: 5em;
+}
+
+.subtitle-has-julius {
+    font-family: 'Julius Sans One', sans-serif;
+    font-size: 2em;
+}

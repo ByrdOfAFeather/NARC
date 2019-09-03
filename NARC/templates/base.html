@@ -6,6 +6,8 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
     <link rel="stylesheet" href="{% static 'css/base.css' %}">
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.5/css/bulma.css">
+    <link href="https://fonts.googleapis.com/css?family=Julius+Sans+One|Roboto&display=swap" rel="stylesheet">
     <link rel="apple-touch-icon" sizes="57x57" href="{% static 'images/apple-icon-57x57.png' %}">
     <link rel="apple-touch-icon" sizes="60x60" href="{% static 'images/apple-icon-60x60.png' %}">
     <link rel="apple-touch-icon" sizes="72x72" href="{% static 'images/apple-icon-72x72.png' %}">
@@ -46,17 +48,19 @@
 <body>
     {% block extras %}
     {% endblock %}
-    <script type="text/javascript">
-        // taken from https://stackoverflow.com/a/12815379
-        $(window).scroll(function(){
-            $("#home-button").css({"margin-top": ($(window).scrollTop()) + "px", "margin-left":($(window).scrollLeft()) + "px"});
-        });
+    {% block home_button_scripts %}
+        <script type="text/javascript">
+            // taken from https://stackoverflow.com/a/12815379
+            $(window).scroll(function(){
+                $("#home-button").css({"margin-top": ($(window).scrollTop()) + "px", "margin-left":($(window).scrollLeft()) + "px"});
+            });
 
 
-        function goHome() {
-                window.location.replace("{% url 'mainpages:index' %}");
-        }
-    </script>
+            function goHome() {
+                    window.location.replace("{% url 'mainpages:index' %}");
+            }
+        </script>
+    {% endblock %}
     {% block settings_menu_scripts %}
         <script type="text/javascript">
             window.onclick = function(event) {
@@ -109,7 +113,9 @@
         </div>
     {% endblock %}
     <div id="blurrable">
-        <img id="home-button" src="{% static 'images/favicon-32x32.png' %}" onclick="goHome();">
+        {% block home_button %}
+            <img id="home-button" src="{% static 'images/favicon-32x32.png' %}" onclick="goHome();" alt="go home">
+        {% endblock %}
         {% block body %}
         {% endblock %}
     </div>
