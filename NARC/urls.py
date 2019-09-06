@@ -21,4 +21,5 @@ urlpatterns = [
     path('canvas_api/', include('CanvasWrapper.urls')),
     path('api/', include('API.urls')),
     path('', include("Main.urls")),
+    path('frontend/', include('Frontend.urls'))
 ]

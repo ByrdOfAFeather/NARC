@@ -112,6 +112,8 @@
             </form>
         </div>
     {% endblock %}
+    {% block non_blur_body %} {% endblock %}
+
     <div id="blurrable">
         {% block home_button %}
             <img id="home-button" src="{% static 'images/favicon-32x32.png' %}" onclick="goHome();" alt="go home">

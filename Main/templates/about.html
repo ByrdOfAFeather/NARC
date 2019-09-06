@@ -4,13 +4,35 @@
 {% block css %}
     <link rel="stylesheet" type="text/css" href="{% static 'css/about.css' %}">
 {% endblock %}
+
+{% block extras %}
+    <script type="text/javascript">
+        $(document).ready(() => {
+            let animatedContainers = $(".animated-container");
+            function animateContainer(container, stop) {
+                $(animatedContainers[container]).find("h1").first().slideDown(1000, () => {
+                    $(animatedContainers[container]).find("p").first().slideDown(500, () => {
+                        if (stop === container + 1) { return; }
+                        else {
+                            animateContainer(container + 1, stop);
+                        }
+                    })
+                });
+            }
+            animateContainer(0, 1);
+            animateContainer(1, 2);
+            animateContainer(2, 3);
+        });
+
+    </script>
+{% endblock %}
 {% block body %}
     <section class="section">
-        <div class="container has-text-centered">
-            <h1 class="title-has-julius">WHAT WE DO</h1>
+        <div class="container has-text-centered animated-container">
+            <h1 class="title-has-julius animated">WHAT WE DO</h1>
             <div class="columns">
                 <div class="column">
-                    <p class="description">
+                    <p class="description animated">
                         At launch, NARC is going to work on a somewhat simple autoencoder system. This
                         means that it’s going to take in testing data and separate the data into two groups: anomalous test takers
                         (people who don’t have testing data that looks like everyone else) and non- anomalous test takers (people who
@@ -26,11 +48,11 @@
     </section>
     <hr>
     <section class="section">
-        <div class="container has-text-centered">
-            <h1 class="title-has-julius">Privacy Policy & Storing Data</h1>
+        <div class="container has-text-centered animated-container">
+            <h1 class="title-has-julius animated">Privacy Policy & Storing Data</h1>
             <div class="columns">
                 <div class="column">
-                    <p class="description">
+                    <p class="description animated">
                         N/A<a href="{%url 'mainpages:what-we-do'%}">information</a>
                     </p>
                 </div>
@@ -39,19 +61,17 @@
     </section>
     <hr>
     <section class="section">
-        <div class="container has-text-centered">
-            <h1 class="title-has-julius">HOW DO WE COMPLY WITH FERPA?</h1>
+        <div class="container has-text-centered animated-container">
+            <h1 class="title-has-julius animated">HOW DO WE COMPLY WITH FERPA?</h1>
             <div class="columns">
                 <div class="column">
-                    <p class="description">
+                    <p class="description animated">
                         N/A<a href="{%url 'mainpages:what-we-do'%}">information</a>
                     </p>
                 </div>
             </div>
         </div>
     </section>
-    <button onclick="window.location.replace('{% url 'mainpages:privacy-policy' %}');">Privacy Policy</button>
-    <button onclick="window.location.replace('{% url 'mainpages:ferpa-act-compliance' %}');">How do we comply with FERPA?</button>
     {% block settings_menu %} {% endblock %}
     {% block settings_menu_scripts %}{% endblock %}
 {% endblock %}

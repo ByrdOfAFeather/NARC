@@ -16,7 +16,28 @@ K-Means for Javascript (clusterfck): https://github.com/harthur/clusterfck/blob/
 
 Tensorflow for Javascript: https://github.com/tensorflow/tfjs
 
+Tensorflow: https://github.com/tensorflow/tensorflow
+
+Django Rest Framework: https://github.com/encode/django-rest-framework
+
 Django: https://github.com/django/django
 
 (Inspired from) Harvard/django-canvas-oauth: https://github.com/Harvard-University-iCommons/django-canvas-oauth
+
+Bulma: https://bulma.io
+
+Scikit-learn: https://github.com/scikit-learn/scikit-learn
+
+fcm-django: https://github.com/xtrinch/fcm-django
+
+pandas: https://github.com/pandas-dev/pandas
+
+numpy: https://github.com/numpy/numpy
+
+whitenoise: https://github.com/evansd/whitenoise 
+
+
+
+
+
 

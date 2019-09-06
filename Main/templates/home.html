@@ -9,6 +9,28 @@
     <link rel="stylesheet" type="text/css" href="{% static 'css/styles.css' %}">
 {% endblock %}
 
+{% block non_blur_body %}
+    <div class="modal" id="canvas-url">
+        <div class="modal-background no-color" id="canvas-modal-background"></div>
+        <div class="modal-content" id="canvas-modal-content">
+            <div class="container">
+                <form class="form has-text-centered" onsubmit="getAPIInfo();">
+                    <div class="field" >
+                        <div class="control">
+                            <input id="canvas-url-input" placeholder="Canvas URL" class="input">
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="control">
+                            <button class="has-green-background has-white-text button is-medium">Go</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
 {% block body %}
     {% if error %}
         <p>{{ error }}</p>
@@ -20,17 +42,31 @@
 
     {% block extras %}
         <script type="text/javascript">
-            // Placeholder for actual privacy policy
-            window.onload = function() {
-                alert("Cookies are used on this website!");
-            };
+            $(document).ready(function() {
+                $("#canvas-modal-background").on("click", (e) => {
+                    e.target.parentNode.className = "modal";
+                    document.getElementById("blurrable").style.filter = "none";
+                });
+                //
+                // $(element).slideDown(1000);
+                $(".animated-first").each((index, element) => {
+                    $(element).slideDown(750);
+                });
+                $(".animated-left-to-right").each((index, element) => {
+                            $(element).show("slide", {direction: "left"}, 1000);
+                        });
+                setTimeout( () => {
+                    console.log("I'm getting here");
+                    $("#animated-second").slideDown(750, () => {
+                        $(".animated").each((index, element) => {
+                            $(element).show("slide", {direction: "left"}, 1000);
+                        });
+                    });
+                }, 750);
+            });
 
-            /**
-             * This function logs a user in via Canvas' OAuth2 implementation see Main/views.py for more information
-             * @returns nothing
-             */
             function getAPIInfo() {
-                let url = window.prompt("What is your Canvas URL?", "(ex: canvas.instructure.com | stanford.instructure.com)");
+                let url = document.getElementById("canvas-url-input").value;
                 if (url) {
                     $.ajax({
                         url: '{% url 'canvaswrapper:oauth-url' %}',
@@ -62,68 +98,80 @@
                     alert("You have to provide a URL!");
                 }
             }
+
+            /**
+             * This function logs a user in via Canvas' OAuth2 implementation see Main/views.py for more information
+             * @returns nothing
+             */
+            function showURLInput() {
+                document.getElementById("blurrable").style.filter = "blur(10px)";
+                document.getElementById("canvas-url").className += " is-active";
+                {#document.getElementById("canvas-modal-input").style.display = "none";#}
+                document.getElementById("canvas-url-input").style.display = "none";
+                let input = $("#canvas-url-input");
+                input.show()
+                input.select();
+            }
         </script>
     {% endblock %}
 
     <section class="section" id="title-section">
         <div class="container">
             <div class="columns is-centered">
-                <div class="column has-text-centered">
-                    <h1 class="title-has-julius">NARC</h1>
-                    <h4 class="subtitle-has-julius">A novel cheat detection system</h4>
-                </div>
             </div>
         </div>
     </section>
 
-    <section class="section" id="logo-section">
-        <div class="container">
-            <div class="columns is-centered">
-                <div class="column is-one-third">
-                    <figure class="image">
-                        <a href="javascript:getAPIInfo();"><img class="clickable" src="{% static 'images/narc.png' %}" alt="NARC-Logo"></a>
-                    </figure>
-                </div>
-            </div>
-        </div>
-    </section>
-    <hr>
     <section class="section">
-        <div class="container has-text-centered">
-            <h1 class="title-has-julius">ABOUT</h1>
-            <div class="columns is-centered">
-                <div class="column large-text">
-                    <p>NARC is a cheat detection system utilizing modern deep learning technologies. It's primary
-                    target is Canvas LMS, but will hopefully support a variety of platforms in the future. Want to know
-                        how it works, or how it keeps your data safe? Learn more<a href="{% url 'mainpages:about' %}">here</a></p>
-                </div>
+        <div class="columns is-multiline is-vcentered is-centered">
+            <div class="column is-2 justify-right">
+                <figure class="image">
+                    <a href="javascript:showURLInput();"><img class="clickable" src="{% static 'images/narc.png' %}" alt="NARC-Logo"></a>
+                </figure>
+            </div>
+            <div class="column has-text-centered justify-left is-5">
+                <h1 class="title-has-julius animated-first">NARC</h1>
+                <h4 class="subtitle-has-julius" id="animated-second">An open-source cheat detection system</h4>
+            </div>
+            <div class="column has-text-centered is-full large-text" id="">
+                <button class="has-green-background has-white-text button is-medium has-julius" id="get-started-button" onclick="showURLInput()">
+                    Try it out
+                </button>
             </div>
         </div>
     </section>
-    <hr>
     <section class="section">
-        <div class="container has-text-centered">
-            <h1 class="title-has-julius">LOGIN</h1>
-            <div class="columns is-centered">
-                <div class="column large-text">
-                    <p>Ready to start trying to find cheaters?<a href="javascript:getAPIInfo();">Login</a></p>
-                </div>
+        <hr class="is-small is-black"/>
+        <div class="columns is-multiline justify-center is-vcentered">
+            <div class="column is-half has-text-centered justify-right">
+                <h1 class="title-has-julius">Secure</h1>
+            </div>
+            <div class="column has-text-centered is-half">
+                <p class="large-text">NARC is developed from the ground up to ensure that data is secure and anonymous. NARC never saves
+                    data without explicit permission and all code involving data-processing is public on <a href="https://www.github.com/byrdofafeather/NARC">github</a></p>
+            </div>
+        </div>
+        <hr class=" is-small is-black"/>
+        <div class="columns is-multiline justify-center is-vcentered">
+            <div class="column is-half has-text-centered justify-right">
+                <h1 class="title-has-julius">Continuous Development</h1>
+            </div>
+            <div class="column has-text-centered is-half">
+                <p class="large-text">At launch NARC will use a simple auto-encoder method to separate anomalies. As more people donate their
+                    data, NARC will continue to get better at classifying test data. Get the <a href="">details</a></p>
+            </div>
+        </div>
+        <hr class="is-small is-black"/>
+        <div class="columns is-multiline justify-center is-vcentered">
+            <div class="column is-half has-text-centered justify-right">
+                <h1 class="title-has-julius">Canvas Integration</h1>
+            </div>
+            <div class="column has-text-centered is-half">
+                <p class="large-text">NARC integrates into the Canvas platform allowing for simple back-and-forth interactions
+                that powers NARC to provide in-depth analysis of testing results.</p>
             </div>
         </div>
     </section>
-    <hr>
-    <section class="section">
-        <div class="container has-text-centered">
-            <h1 class="title-has-julius">CONTACT</h1>
-            <div class="columns is-centered">
-                <div class="column large-text">
-                    <p>Still have questions? Visit us on<a href="https://www.github.com/byrdofafeather/NARC">github</a> or
-                    send an<a href="{% url 'mainpages:about' %}">email</a></p>
-                </div>
-            </div>
-        </div>
-    </section>
-    <hr>
     {% if logged_in %}
         <p>
             It appears you have already logged in! If you want to login with a different token click the button below,

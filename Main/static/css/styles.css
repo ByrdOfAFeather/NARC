@@ -10,7 +10,7 @@
 }
 
 .large-text {
-    font-size: 2em;
+    font-size: 1.2em;
 }
 
 #navigation-section {
@@ -33,4 +33,33 @@
 .title-link {
     text-decoration: none;
     color: #4a4a4a;
+}
+
+.has-right-border {
+    border-right: solid whitesmoke 2px;
+}
+
+.overlayed {
+    z-index: 100;
+}
+
+.no-color {
+    background-color: transparent;
+}
+
+.important-container {
+    border: 1px gray solid;
+    border-radius: 5px;
+}
+
+.animated-first {
+    display: none;
+}
+
+#animated-second {
+    display: none;
+}
+
+#animated-third {
+    display: none;
 }

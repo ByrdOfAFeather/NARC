@@ -25,7 +25,8 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "I'm a secret key!")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get("DJANGO_DEBUG", '') != 'False'
 
-ALLOWED_HOSTS = ['narc-cheat.herokuapp.com', 'www.byrdof.dev', '127.0.0.1', '192.168.1.233']
+ALLOWED_HOSTS = ['narc-cheat.herokuapp.com', 'www.byrdof.dev', '127.0.0.1', '192.168.43.116']
+
 
 
 # Application definition
@@ -43,6 +44,7 @@ INSTALLED_APPS = [
     'CanvasWrapper.apps.CanvaswrapperConfig',
     'Main.apps.MainConfig',
     'API.apps.ApiConfig',
+    'Frontend.apps.FrontendConfig'
 ]
 
 FCM_DJANGO_SETTINGS = {

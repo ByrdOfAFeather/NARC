@@ -43,12 +43,63 @@
     cursor: pointer;
 }
 
+.button.animated {
+    display: none;
+}
+
+.column.animated {
+    display: none;
+}
+
+.animated {
+    display: none;
+}
+
+.animated-left-to-right {
+    display: none;
+}
+
+hr.is-small {
+    margin-left: 3%;
+    margin-right: 3%;
+}
+
+hr.is-black {
+    background-color: black
+;
+}
+
 .title-has-julius {
     font-family: 'Julius Sans One', sans-serif;
-    font-size: 5em;
+    font-size: 2em;
+}
+
+.animated-on-click {
+    display: none;
+}
+
+.has-julius {
+    font-family: 'Julius Sans One', sans-serif;
+    font-size: .8em;
 }
 
 .subtitle-has-julius {
     font-family: 'Julius Sans One', sans-serif;
     font-size: 2em;
+}
+
+.has-green-background {
+    background-color: #0e8810 !important;
+}
+
+.has-white-text {
+    color: white !important;
+}
+
+.modal-content.animated {
+    display: none;
+}
+
+.button:hover {
+    opacity: .5;
 }
