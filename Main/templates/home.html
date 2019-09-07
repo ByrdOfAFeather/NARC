@@ -14,18 +14,38 @@
         <div class="modal-background no-color" id="canvas-modal-background"></div>
         <div class="modal-content" id="canvas-modal-content">
             <div class="container">
-                <form class="form has-text-centered" onsubmit="getAPIInfo();">
-                    <div class="field" >
-                        <div class="control">
-                            <input id="canvas-url-input" placeholder="Canvas URL" class="input">
+                <div class="columns is-centered is-vcentered">
+                    <div class="column is-4 has-right-border has-text-right">
+                        <div class="columns is-centered is-vcentered">
+                            <div class="column has-text-right">
+                                <img src="{% static 'images/tester2.png' %}" style="height: 50px; width: 50px">
+                            </div>
+                            <div class="column">
+                                <p>Terms and Conditions</p>
+                            </div>
                         </div>
+                        <br>
+                        <p>Canvas Integration</p>
+                        <br>
+                        <p>Account Creation</p>
+                        <br>
+                        <p>Other Information</p>
                     </div>
-                    <div class="field">
-                        <div class="control">
-                            <button class="has-green-background has-white-text button is-medium">Go</button>
-                        </div>
+                    <div class="column">
+                        <form class="form has-text-centered" onsubmit="getAPIInfo();">
+                            <div class="field">
+                                <div class="control">
+                                    <input id="canvas-url-input" placeholder="Canvas URL" class="input">
+                                </div>
+                            </div>
+                            <div class="field">
+                                <div class="control">
+                                    <button class="has-green-background has-white-text button is-medium">Go</button>
+                                </div>
+                            </div>
+                        </form>
                     </div>
-                </form>
+                </div>
             </div>
         </div>
     </div>
@@ -154,7 +174,7 @@
         <hr class=" is-small is-black"/>
         <div class="columns is-multiline justify-center is-vcentered">
             <div class="column is-half has-text-centered justify-right">
-                <h1 class="title-has-julius">Continuous Development</h1>
+                <h1 class="title-has-julius">Iterative Improvement</h1>
             </div>
             <div class="column has-text-centered is-half">
                 <p class="large-text">At launch NARC will use a simple auto-encoder method to separate anomalies. As more people donate their

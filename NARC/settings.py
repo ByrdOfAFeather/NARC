@@ -44,7 +44,6 @@ INSTALLED_APPS = [
     'CanvasWrapper.apps.CanvaswrapperConfig',
     'Main.apps.MainConfig',
     'API.apps.ApiConfig',
-    'Frontend.apps.FrontendConfig'
 ]
 
 FCM_DJANGO_SETTINGS = {

@@ -13,6 +13,13 @@
     font-size: 1.2em;
 }
 
+#canvas-modal-content {
+    overflow-y: hidden;
+    overflow-x: hidden;
+    width: 100%;
+    /*background-color: white;*/
+}
+
 #navigation-section {
     padding-top: 0;
 }
