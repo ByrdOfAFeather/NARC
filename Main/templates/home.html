@@ -16,22 +16,100 @@
             <div class="container">
                 <div class="columns is-centered is-vcentered">
                     <div class="column is-4 has-right-border has-text-right">
-                        <div class="columns is-centered is-vcentered">
-                            <div class="column has-text-right">
-                                <img src="{% static 'images/arrow.png' %}" style="height: 50px; width: 50px">
+                        <button class="setup-wizard-trigger no-button-styling current-setup-item" id="terms-and-conditions-trigger">Terms and Conditions</button>
+                        <br>
+
+                        <button class="setup-wizard-trigger no-button-styling" id="account-creation-trigger">Account Creation</button>
+                        <br>
+
+                        <button class="setup-wizard-trigger no-button-styling" id="other-information-trigger">Other Information</button>
+                        <br>
+
+                        <button class="setup-wizard-trigger no-button-styling" id="canvas-integration-trigger">Canvas Integration</button>
+
+                    </div>
+                    <div id="placeholder" class="column"></div>
+                    <div class="setup-wizard-item is-default column" id="terms-and-conditions">
+                        <!-- todo: add terms and conditions -->
+                        <div id="terms">
+                            <p>
+                                MIT License
+                                <br><br>
+                                Copyright (c) 2017-2019 Matthew Byrd
+                                <br><br>
+                                Permission is hereby granted, free of charge, to any person obtaining a copy
+                                of this software and associated documentation files (the "Software"), to deal
+                                in the Software without restriction, including without limitation the rights
+                                to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+                                copies of the Software, and to permit persons to whom the Software is
+                                furnished to do so, subject to the following conditions:
+                                <br><br>
+                                The above copyright notice and this permission notice shall be included in all
+                                copies or substantial portions of the Software.
+                                <br><br>
+                                THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+                                IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+                                FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+                                AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+                                LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+                                OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+                                SOFTWARE.
+                            </p>
+                        </div>
+                        <div class="columns">
+                            <div class="column is-1">
+                                <button class="button has-white-text has-green-background" onclick="nextSetup(event);">Agree</button>
                             </div>
-                            <div class="column">
-                                <p>Terms and Conditions</p>
+                            <div class="column is-1"></div>
+                            <div class="column is-1">
+                                <button class="button has-white-text has-green-background" onclick="nextSetup(event);">Decline</button>
                             </div>
                         </div>
-                        <br>
-                        <p>Canvas Integration</p>
-                        <br>
-                        <p>Account Creation</p>
-                        <br>
-                        <p>Other Information</p>
                     </div>
-                    <div class="column">
+                    <div class="setup-wizard-item column" id="account-creation">
+                        <form class="form has-text-centered" onsubmit="return attemptAccountRegister();">
+                            <div class=field">
+                                <div class="control">
+                                    <input class="input" placeholder="USERNAME" id="username-input">
+                                </div>
+                            </div>
+                            <div class=field">
+                                <div class="control">
+                                    <input type="password" class="input" placeholder="PASSWORD" id="password-input">
+                                </div>
+                                <p class="help is-danger" id="password-warning">Passwords don't match</p>
+                            </div>
+                            <div class=field">
+                                <div class="control">
+                                    <input type="password" class="input" placeholder="CONFIRM PASSWORD" id="confirm-password-input">
+                                </div>
+                                <p class="help is-danger" id="confirm-password-warning">Passwords don't match</p>
+                            </div>
+                            <input
+                                    class="has-green-background has-white-text button is-pulled-right"
+                                    id="submit-profile-info"
+                                    type="submit"
+                                    value="Submit"
+                            >
+                        </form>
+                    </div>
+                    <div class="setup-wizard-item column" id="other-information">
+                        <div class=field">
+                            <div class="control">
+                                <label class="checkbox">
+                                    <input type="checkbox" class="checkbox">
+                                    Allow NARC to save de-identified datasets?
+                                </label>
+                            </div>
+                            <div class="control">
+                                <label class="label">
+                                    Autoencoder iterations
+                                    <input class="input" value="5000">
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="setup-wizard-item column" id="canvas-integration">
                         <form class="form has-text-centered" onsubmit="getAPIInfo();">
                             <div class="field">
                                 <div class="control">
@@ -62,7 +140,100 @@
 
     {% block extras %}
         <script type="text/javascript">
+            setupItems = [
+                {
+                    "item": $("#terms-and-conditions"),
+                    "can-click": true,
+                },
+                {
+                    "item": $("#account-creation"),
+                    "can-click": false,
+                },
+                {
+                    "item": $("#other-information"),
+                    "can-click": false,
+                },
+                {
+                    "item": $("#canvas-integration"),
+                    "can-click": false
+                }
+            ];
+            var lastSetupItem = setupItems[0]["item"];
+            function nextSetup(event) {
+                let index = setupItems.findIndex((elt) => elt["item"].attr("id") === $(event.target).attr("id"));
+                setupItems[index]["item"].hide();
+                setupItems[index + 1]["item"].show();
+                $("#" + setupItems[index]["item"].attr("id") + "-trigger").removeClass("current-setup-item");
+                $("#" + setupItems[index + 1]["item"].attr("id") + "-trigger").addClass("current-setup-item");
+                lastSetupItem = setupItems[index + 1]["item"];
+            }
+
+            function attemptAccountRegister() {
+                let username = $("#username-input").val();
+                let password = $("#password-input").val();
+
+                $.ajax({
+                    url: "{% url 'api:create-user' %}",
+                    method: "post",
+                    dataType: "json",
+                    data: {
+                        username: username,
+                        password: password,
+                        notification_token: "",
+                        device: "pc"
+                    },
+                    success: function() {
+                        nextSetup({target: $("#account-creation")});
+                    },
+                    error: function(e) {
+                    }
+                });
+                return false;
+            }
             $(document).ready(function() {
+                let confirm_password = $("#confirm-password-input");
+                let password = $("#password-input");
+
+                function checkPassword() {
+                    if (confirm_password.val() !== "" || password.val() !== "") {
+                        if (confirm_password.val() !== password.val()) {
+                            $("#confirm-password-warning").show();
+                            $("#password-warning").show();
+                            password.addClass("is-danger");
+                            confirm_password.addClass("is-danger");
+                            $("#submit-profile-info").attr("disabled", true);
+                        } else {
+                            $("#confirm-password-warning").hide();
+                            $("#password-warning").hide();
+                            password.removeClass("is-danger");
+                            confirm_password.removeClass("is-danger");
+                            $("#submit-profile-info").attr("disabled", false);
+                        }
+                    }
+                }
+                confirm_password.focusout(checkPassword);
+                password.focusout(checkPassword);
+
+                $(".setup-wizard-trigger").on("click", (e) => {
+                    $(".current-setup-item").each((_, elt) => {
+                        elt.className = elt.className.replace("current-setup-item", "");
+                    });
+
+                    e.target.className += " current-setup-item";
+                    let targetID = e.target.id.replace("-trigger", "");
+                    let target = $("#" + targetID);
+                    if (lastSetupItem !== undefined) {
+                        lastSetupItem.fadeOut(200);
+                        setTimeout(function() {
+                            $("#placeholder").hide();
+                            target.slideDown(500, () => {
+                            });
+                        }, 190);
+                    }
+                    lastSetupItem = target;
+                });
+
+
                 $("#canvas-modal-background").on("click", (e) => {
                     e.target.parentNode.className = "modal";
                     document.getElementById("blurrable").style.filter = "none";
@@ -73,10 +244,9 @@
                     $(element).slideDown(750);
                 });
                 $(".animated-left-to-right").each((index, element) => {
-                            $(element).show("slide", {direction: "left"}, 1000);
-                        });
+                    $(element).show("slide", {direction: "left"}, 1000);
+                });
                 setTimeout( () => {
-                    console.log("I'm getting here");
                     $("#animated-second").slideDown(750, () => {
                         $(".animated").each((index, element) => {
                             $(element).show("slide", {direction: "left"}, 1000);
@@ -124,9 +294,8 @@
              * @returns nothing
              */
             function showURLInput() {
-                document.getElementById("blurrable").style.filter = "blur(10px)";
+                document.getElementById("blurrable").style.filter = "blur(15px)";
                 document.getElementById("canvas-url").className += " is-active";
-                {#document.getElementById("canvas-modal-input").style.display = "none";#}
                 document.getElementById("canvas-url-input").style.display = "none";
                 let input = $("#canvas-url-input");
                 input.show()
@@ -188,7 +357,7 @@
             </div>
             <div class="column has-text-centered is-half">
                 <p class="large-text">NARC integrates into the Canvas platform allowing for simple back-and-forth interactions
-                that powers NARC to provide in-depth analysis of testing results.</p>
+                    that powers NARC to provide in-depth analysis of testing results.</p>
             </div>
         </div>
     </section>

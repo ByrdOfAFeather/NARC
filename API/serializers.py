@@ -34,8 +34,9 @@ class UserSerializer(serializers.ModelSerializer):
 		super().validate(attrs)
 		try:
 			validate_password(attrs["password"])
-			if self.initial_data["device"] != "android" and self.initial_data["device"] != "ios":
-				raise serializers.ValidationError({"device": "must be android or ios"}, code=406)
+			if self.initial_data["device"] != "android" and self.initial_data["device"] != "ios" \
+					and self.initial_data["device"] != "pc":
+				raise serializers.ValidationError({"device": "must be android ios or pc"}, code=406)
 			# TODO: Validate notification token
 			attrs["notification_token"] = self.initial_data["notification_token"]
 			attrs["device"] = self.initial_data["device"]
