@@ -4,6 +4,7 @@ import threading
 from typing import Optional
 
 import pandas as pd
+from django.contrib.auth import login, authenticate
 from django.contrib.auth.models import User
 from django.http import JsonResponse
 from fcm_django.models import FCMDevice
@@ -130,12 +131,10 @@ def mobile_endpoint(request):
 
 @api_view(["POST"])
 def create_user(request):
-	# TODO: Implementation
 	data = request.POST.get("data")
 	data = json.loads(data)
 	username, password = data["username"], data["password"]
 	if User.objects.filter(username=username).count():
-		# TODO: Fix error code
 		return error_generator("Username in use!", 401)
 	new_user = User.objects.create(
 		username=username,
@@ -157,14 +156,20 @@ def register_user(request):
 		user.set_password(serialized.validated_data["password"])
 		user.save()
 
-		FCMDevice.objects.create(user=user,
-		                         registration_id=serialized.validated_data["notification_token"],
-		                         type=serialized.validated_data["device"])
+		if serialized.validated_data["device"] == "pc":
+			logged_in = authenticate(request,
+			                         username=serialized.validated_data["username"],
+			                         password=serialized.validated_data["password"])
+			login(request, logged_in)
+
+		else:
+			FCMDevice.objects.create(user=user,
+			                         registration_id=serialized.validated_data["notification_token"],
+			                         type=serialized.validated_data["device"])
 
 		token, created = Token.objects.get_or_create(user=user)
 		return Response({"success": {"data": {"token": token.key}}}, status=200)
 	else:
-		print(serialized.errors)
 		return Response({"error": {"data": serialized.errors}}, status=406)
 
 

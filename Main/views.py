@@ -79,29 +79,31 @@ def oauth_authorization(request: HttpRequest) -> HttpResponse:
 			response = final_code.json()
 
 			# The username is saved as the id and url hashed together, this is due to user ID only being unique per url
-			username = hashlib.sha3_256((str(response['user']['id']) + url).encode("utf-8")).hexdigest()
-			test_user = User.objects.filter(username=username)
-			if test_user:
-				# Automatically logs the user in if they are already detected in the database
-				oauth = AuthorizedUser.objects.get(user=test_user[0])
-				oauth.access_token = response["access_token"]
-				oauth.refresh_token = response["refresh_token"]
-				oauth.expires = timezone.now() + timedelta(seconds=response["expires_in"])
-				oauth.save()
-				user = authenticate(request, username=username, password=username)
-				login(request, user)
-				return HttpResponseRedirect(request.build_absolute_uri("/courses/"))
+			# username = hashlib.sha3_256((str(response['user']['id']) + url).encode("utf-8")).hexdigest()
+			# test_user = User.objects.filter(username=username)
+			# if test_user:
+			# 	# Automatically logs the user in if they are already detected in the database
+			# 	oauth = AuthorizedUser.objects.get(user=test_user[0])
+			# 	oauth.access_token = response["access_token"]
+			# 	oauth.refresh_token = response["refresh_token"]
+			# 	oauth.expires = timezone.now() + timedelta(seconds=response["expires_in"])
+			# 	oauth.save()
+			# 	user = authenticate(request, username=username, password=username)
+			# 	login(request, user)
+			# 	return HttpResponseRedirect(request.build_absolute_uri("/courses/"))
 
-			# TODO: This needs to change to accommodate for the mobile app.
-			# This takes some explaining. The user model is simply so that Django knows how to link up everything
-			# there's no way to actually login to this from the user's perspective, only in this particular view.
-			# The url & id allow us to have a unique key and also serve as the password, since the password is required.
-			# Bonus: since the urls have to exist in the database for the canvas installation, there's no way to cheese
-			# this request and login, even if you know the user's id and password!
-			new_user = User.objects.create_user(  # Create a user based on hashed username
-				username=username,
-				password=username
-			)
+			# # TODO: This needs to change to accommodate for the mobile app.
+			# # This takes some explaining. The user model is simply so that Django knows how to link up everything
+			# # there's no way to actually login to this from the user's perspective, only in this particular view.
+			# # The url & id allow us to have a unique key and also serve as the password, since the password is required.
+			# # Bonus: since the urls have to exist in the database for the canvas installation, there's no way to cheese
+			# # this request and login, even if you know the user's id and password!
+			# new_user = User.objects.create_user(  # Create a user based on hashed username
+			# 	username=username,
+			# 	password=username
+			# )
+
+			new_user = request.user
 
 			AuthorizedUser.objects.create(  # Create a oauth token based on retrieved information
 				user=new_user,
@@ -111,8 +113,6 @@ def oauth_authorization(request: HttpRequest) -> HttpResponse:
 				url=f"https://{url}"
 			)
 
-			user = authenticate(request, username=username, password=username)
-			login(request, user)
 			return render(request, "courses.html")
 	else:
 		# TODO: Changed URL!!!

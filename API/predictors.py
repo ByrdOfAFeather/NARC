@@ -112,8 +112,6 @@ def classify(org_data: pd.DataFrame) -> tuple:
 			ones.append(index)
 		else:
 			zeros.append(index)
-	print(anon_dict)
-	print(org_data)
 
 	# TODO: Testing for zeros and errors coming from that
 

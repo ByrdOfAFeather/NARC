@@ -22,7 +22,7 @@
                         <button class="setup-wizard-trigger no-button-styling" id="account-creation-trigger">Account Creation</button>
                         <br>
 
-                        <button class="setup-wizard-trigger no-button-styling" id="other-information-trigger">Other Information</button>
+                        <button class="setup-wizard-trigger no-button-styling" id="account-settings-trigger">Account Settings</button>
                         <br>
 
                         <button class="setup-wizard-trigger no-button-styling" id="canvas-integration-trigger">Canvas Integration</button>
@@ -58,7 +58,13 @@
                         </div>
                         <div class="columns">
                             <div class="column is-1">
-                                <button class="button has-white-text has-green-background" onclick="nextSetup(event);">Agree</button>
+                                <button
+                                        class="button has-white-text has-green-background"
+                                        onclick="onAgree();"
+                                        id="terms-and-condition-agree"
+                                >
+                                    Agree
+                                </button>
                             </div>
                             <div class="column is-1"></div>
                             <div class="column is-1">
@@ -67,21 +73,30 @@
                         </div>
                     </div>
                     <div class="setup-wizard-item column" id="account-creation">
-                        <form class="form has-text-centered" onsubmit="return attemptAccountRegister();">
+                        <form class="form has-text-centered" onsubmit="return onSubmitProfile();">
                             <div class=field">
                                 <div class="control">
-                                    <input class="input" placeholder="USERNAME" id="username-input">
+                                    <label class="label">
+                                        Username:
+                                        <input class="input" id="username-input">
+                                    </label>
                                 </div>
                             </div>
                             <div class=field">
                                 <div class="control">
-                                    <input type="password" class="input" placeholder="PASSWORD" id="password-input">
+                                    <label class="label">
+                                        Password:
+                                        <input type="password" class="input" id="password-input">
+                                    </label>
                                 </div>
                                 <p class="help is-danger" id="password-warning">Passwords don't match</p>
                             </div>
                             <div class=field">
                                 <div class="control">
-                                    <input type="password" class="input" placeholder="CONFIRM PASSWORD" id="confirm-password-input">
+                                    <label class="label">
+                                        Confirm Password:
+                                        <input type="password" class="input" id="confirm-password-input">
+                                    </label>
                                 </div>
                                 <p class="help is-danger" id="confirm-password-warning">Passwords don't match</p>
                             </div>
@@ -93,32 +108,46 @@
                             >
                         </form>
                     </div>
-                    <div class="setup-wizard-item column" id="other-information">
-                        <div class=field">
-                            <div class="control">
-                                <label class="checkbox">
-                                    <input type="checkbox" class="checkbox">
-                                    Allow NARC to save de-identified datasets?
-                                </label>
+                    <div class="setup-wizard-item column" id="account-settings">
+                        <form class="form" onsubmit="return onSubmitSettings();">
+                            <div class=field">
+                                <div class="control">
+                                    <label class="checkbox">
+                                        <input type="checkbox" class="checkbox" id="save-data">
+                                        Allow NARC to save de-identified datasets?
+                                    </label>
+                                </div>
+                                <div class="control">
+                                    <label class="label">
+                                        Autoencoder iterations
+                                        <input class="input" id="autoencoder-iterations" value="5000">
+                                    </label>
+                                </div>
+                                <input
+                                        class="has-green-background has-white-text button is-pulled-right"
+                                        id="submit-account-settings"
+                                        type="submit"
+                                        value="Save"
+                                >
                             </div>
-                            <div class="control">
-                                <label class="label">
-                                    Autoencoder iterations
-                                    <input class="input" value="5000">
-                                </label>
-                            </div>
-                        </div>
+                        </form>
                     </div>
                     <div class="setup-wizard-item column" id="canvas-integration">
-                        <form class="form has-text-centered" onsubmit="getAPIInfo();">
-                            <div class="field">
-                                <div class="control">
-                                    <input id="canvas-url-input" placeholder="Canvas URL" class="input">
+                        <form class="form has-text-centered" onsubmit="return getAPIInfo();">
+                            <div class="columns is-vcentered">
+                                <div class="column is-11">
+                                    <div class="field">
+                                        <div class="control">
+                                            <input id="canvas-url-input" placeholder="Canvas URL" class="input">
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="field">
-                                <div class="control">
-                                    <button class="has-green-background has-white-text button is-medium">Go</button>
+                                <div class="column is-1">
+                                    <div class="field">
+                                        <div class="control">
+                                            <button class="has-green-background has-white-text button is-medium">Go</button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </form>
@@ -140,121 +169,6 @@
 
     {% block extras %}
         <script type="text/javascript">
-            setupItems = [
-                {
-                    "item": $("#terms-and-conditions"),
-                    "can-click": true,
-                },
-                {
-                    "item": $("#account-creation"),
-                    "can-click": false,
-                },
-                {
-                    "item": $("#other-information"),
-                    "can-click": false,
-                },
-                {
-                    "item": $("#canvas-integration"),
-                    "can-click": false
-                }
-            ];
-            var lastSetupItem = setupItems[0]["item"];
-            function nextSetup(event) {
-                let index = setupItems.findIndex((elt) => elt["item"].attr("id") === $(event.target).attr("id"));
-                setupItems[index]["item"].hide();
-                setupItems[index + 1]["item"].show();
-                $("#" + setupItems[index]["item"].attr("id") + "-trigger").removeClass("current-setup-item");
-                $("#" + setupItems[index + 1]["item"].attr("id") + "-trigger").addClass("current-setup-item");
-                lastSetupItem = setupItems[index + 1]["item"];
-            }
-
-            function attemptAccountRegister() {
-                let username = $("#username-input").val();
-                let password = $("#password-input").val();
-
-                $.ajax({
-                    url: "{% url 'api:create-user' %}",
-                    method: "post",
-                    dataType: "json",
-                    data: {
-                        username: username,
-                        password: password,
-                        notification_token: "",
-                        device: "pc"
-                    },
-                    success: function() {
-                        nextSetup({target: $("#account-creation")});
-                    },
-                    error: function(e) {
-                    }
-                });
-                return false;
-            }
-            $(document).ready(function() {
-                let confirm_password = $("#confirm-password-input");
-                let password = $("#password-input");
-
-                function checkPassword() {
-                    if (confirm_password.val() !== "" || password.val() !== "") {
-                        if (confirm_password.val() !== password.val()) {
-                            $("#confirm-password-warning").show();
-                            $("#password-warning").show();
-                            password.addClass("is-danger");
-                            confirm_password.addClass("is-danger");
-                            $("#submit-profile-info").attr("disabled", true);
-                        } else {
-                            $("#confirm-password-warning").hide();
-                            $("#password-warning").hide();
-                            password.removeClass("is-danger");
-                            confirm_password.removeClass("is-danger");
-                            $("#submit-profile-info").attr("disabled", false);
-                        }
-                    }
-                }
-                confirm_password.focusout(checkPassword);
-                password.focusout(checkPassword);
-
-                $(".setup-wizard-trigger").on("click", (e) => {
-                    $(".current-setup-item").each((_, elt) => {
-                        elt.className = elt.className.replace("current-setup-item", "");
-                    });
-
-                    e.target.className += " current-setup-item";
-                    let targetID = e.target.id.replace("-trigger", "");
-                    let target = $("#" + targetID);
-                    if (lastSetupItem !== undefined) {
-                        lastSetupItem.fadeOut(200);
-                        setTimeout(function() {
-                            $("#placeholder").hide();
-                            target.slideDown(500, () => {
-                            });
-                        }, 190);
-                    }
-                    lastSetupItem = target;
-                });
-
-
-                $("#canvas-modal-background").on("click", (e) => {
-                    e.target.parentNode.className = "modal";
-                    document.getElementById("blurrable").style.filter = "none";
-                });
-                //
-                // $(element).slideDown(1000);
-                $(".animated-first").each((index, element) => {
-                    $(element).slideDown(750);
-                });
-                $(".animated-left-to-right").each((index, element) => {
-                    $(element).show("slide", {direction: "left"}, 1000);
-                });
-                setTimeout( () => {
-                    $("#animated-second").slideDown(750, () => {
-                        $(".animated").each((index, element) => {
-                            $(element).show("slide", {direction: "left"}, 1000);
-                        });
-                    });
-                }, 750);
-            });
-
             function getAPIInfo() {
                 let url = document.getElementById("canvas-url-input").value;
                 if (url) {
@@ -283,25 +197,39 @@
                             }
                         }
                     });
+                    return false;
                 }
                 else {
                     alert("You have to provide a URL!");
+                    return false;
                 }
             }
 
-            /**
-             * This function logs a user in via Canvas' OAuth2 implementation see Main/views.py for more information
-             * @returns nothing
-             */
-            function showURLInput() {
-                document.getElementById("blurrable").style.filter = "blur(15px)";
-                document.getElementById("canvas-url").className += " is-active";
-                document.getElementById("canvas-url-input").style.display = "none";
-                let input = $("#canvas-url-input");
-                input.show()
-                input.select();
+            function attemptAccountRegister() {
+                let username = $("#username-input").val();
+                let password = $("#password-input").val();
+
+                $.ajax({
+                    url: "{% url 'api:create-user' %}",
+                    method: "post",
+                    dataType: "json",
+                    data: {
+                        username: username,
+                        password: password,
+                        notification_token: "",
+                        device: "pc"
+                    },
+                    success: function() {
+                        nextSetup(1);
+                    },
+                    error: function(e) {
+                        // TODO: Display account creation errors
+                    }
+                });
+                return false;
             }
         </script>
+        <script type="text/javascript" src="{% static 'js/homeScripts.js' %}"></script>
     {% endblock %}
 
     <section class="section" id="title-section">

@@ -14,12 +14,9 @@ class TestMobilePost(TestCase):
 		        "24125422": {"average_time_between_questions": 2750.0, "time_taken": 34, "page_leaves": 4.0,
 		                     "name": "Rico",
 		                     "id": "24125422"}, "secret": "", "encryption_key": "", "storage": ""}
-		print(data)
 		url = "http://127.0.0.1:8000/api/post_mobile/"
 		import json
 		send = json.dumps(data)
 		token = "a352db9c6e45a270ad9c05ac5a5fdc03a75b7dfd"
 		response = requests.post(url, {"data": send}, headers={"Authorization": f"Token {token}"})
-		print(response.status_code)
-		print(response.json())
 

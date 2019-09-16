@@ -213,11 +213,8 @@ def find_std_count(std, scores, start_index):
 	# TODO: Fix (Dict is not ordered so this does not work
 	unique_scores = list(scores.keys())
 	unique_scores.sort()
-	print(unique_scores)
-	print(std)
 	try:
 		test_score = unique_scores[start_index]
-		print(test_score)
 	except IndexError:
 		return 0
 	if float(test_score) >= std:
@@ -409,11 +406,11 @@ def set_oauth_url_cookie(request: HttpRequest) -> JsonResponse:
 	url = request.GET.get("url", "")
 	client = get_dev_key(f"https://{url}")
 	if client is not None:  # This checks if a dev key exists for the canvas installation
-		if request.user.is_authenticated:  # This checks if the user is recognized as logged in
-			# Checks if the token is not expired and the user is logging in on the same domain
-			if test_token(request.user.canvas_oauth2_token.access_token, url, client.dev) and \
-					f"https://{url}" in request.user.canvas_oauth2_token.url:
-				return error_generator("User already logged in on this domain!", 406)
+		# if request.user.is_authenticated:  # This checks if the user is recognized as logged in
+		# 	# Checks if the token is not expired and the user is logging in on the same domain
+		# 	if test_token(request.user.canvas_oauth2_token.access_token, url, client.dev) and \
+		# 			f"https://{url}" in request.user.canvas_oauth2_token.url:
+		# 		return error_generator("User already logged in on this domain!", 406)
 		response = JsonResponse({"success": "none"})
 		response.set_cookie("url", request.GET.get("url", ""))
 		response.status_code = 200
